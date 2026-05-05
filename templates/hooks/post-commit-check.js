@@ -3,8 +3,6 @@
 // Post-commit 文档反写检查
 // 通过 Claude Code PostToolUse hook 触发
 
-const fs = require('node:fs');
-
 const input = process.argv[2] || '{}';
 let toolCall;
 try {

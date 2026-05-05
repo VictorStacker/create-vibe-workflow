@@ -174,7 +174,7 @@ export async function generate(config: UserConfig): Promise<FileResult[]> {
 
   // Hooks
   console.log(chalk.dim('\n🔧 生成 Hook 脚本...'));
-  const hookFiles = ['post-commit-check.js', 'check-deps.js'];
+  const hookFiles = ['post-commit-check.js', 'check-deps.mjs'];
   for (const file of hookFiles) {
     const templatePath = path.join(TEMPLATES_DIR, 'hooks', file);
     try {

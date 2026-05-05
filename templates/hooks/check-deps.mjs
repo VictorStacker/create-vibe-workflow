@@ -3,12 +3,12 @@
 // 依赖检测 — Claude Code PreToolUse hook
 // 检查外部依赖组件是否已安装，缺失时打印中文安装指引
 
-const fs = require('node:fs');
-const os = require('node:os');
-const path = require('node:path');
+import { existsSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { join } from 'node:path';
 
-const homeDir = os.homedir();
-const skillsDir = path.join(homeDir, '.claude', 'skills');
+const homeDir = homedir();
+const skillsDir = join(homeDir, '.claude', 'skills');
 
 const REQUIRED = [
   { name: 'gstack', dir: 'gstack', install: 'cd ~/.claude/skills && git clone https://github.com/garrytan/gstack.git gstack' },
@@ -23,13 +23,13 @@ const missing = [];
 const missingOptional = [];
 
 for (const dep of REQUIRED) {
-  if (!fs.existsSync(path.join(skillsDir, dep.dir))) {
+  if (!existsSync(join(skillsDir, dep.dir))) {
     missing.push(dep);
   }
 }
 
 for (const dep of OPTIONAL) {
-  if (!fs.existsSync(path.join(skillsDir, dep.dir))) {
+  if (!existsSync(join(skillsDir, dep.dir))) {
     missingOptional.push(dep);
   }
 }

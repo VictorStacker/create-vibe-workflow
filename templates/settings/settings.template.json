@@ -1,0 +1,14 @@
+{
+  "meta": {
+    "generatedBy": "create-vibe-workflow@0.1.0",
+    "generatedAt": "<%= GENERATED_AT %>"
+  },
+  "dependencies": {
+    "required": ["gstack", "superpowers"],
+    "optional": ["openspec"]
+  },
+  "workflow": {
+    "version": "9-step-v1",
+    "language": "<%= LANGUAGE %>"
+  }
+}

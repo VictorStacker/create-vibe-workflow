@@ -1,0 +1,22 @@
+{
+  "recommended": [
+    "backend-patterns",
+    "frontend-patterns",
+    "drizzle-orm",
+    "shadcn",
+    "next-best-practices",
+    "postgres-patterns",
+    "e2e-testing",
+    "docker-patterns",
+    "database-migrations",
+    "deployment-patterns"
+  ],
+  "optional": [
+    "coding-standards",
+    "tdd-workflow",
+    "search-first",
+    "security-review",
+    "verification-loop",
+    "strategic-compact"
+  ]
+}

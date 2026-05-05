@@ -1,0 +1,48 @@
+{
+  "name": "create-vibe-workflow",
+  "version": "0.1.0",
+  "description": "一键安装 Claude Code 开发工作流 — 面向非专业编程人员的 Vibe Coding 编排插件",
+  "keywords": [
+    "claude-code",
+    "vibe-coding",
+    "workflow",
+    "ai-assisted-development",
+    "chinese"
+  ],
+  "license": "MIT",
+  "author": "VictorStacker",
+  "bin": {
+    "create-vibe-workflow": "dist/cli.js"
+  },
+  "files": [
+    "dist/",
+    "templates/"
+  ],
+  "scripts": {
+    "build": "tsc && node -e \"require('fs').cpSync('templates','dist/templates',{recursive:true})\" && node -e \"require('fs').cpSync('adapters','dist/adapters',{recursive:true})\"",
+    "dev": "tsx src/cli.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "chalk": "^5.4.1",
+    "ejs": "^3.1.10",
+    "inquirer": "^12.5.0"
+  },
+  "devDependencies": {
+    "@types/ejs": "^3.1.5",
+    "@types/inquirer": "^9.0.7",
+    "@types/node": "^22.13.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0",
+    "vitest": "^4.1.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/VictorStacker/create-vibe-workflow"
+  }
+}

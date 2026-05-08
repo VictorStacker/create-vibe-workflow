@@ -1,0 +1,1 @@
+{"recommended": ["backend-patterns", "express-best-practices", "drizzle-orm", "postgres-patterns", "database-migrations", "docker-patterns", "api-design", "testing-patterns"], "optional": ["coding-standards", "tdd-workflow", "search-first", "security-review", "verification-loop"]}

@@ -5,33 +5,45 @@ paths:
   - "**/*.js"
   - "**/*.jsx"
 ---
-# TypeScript/JavaScript Security
+# 安全规范（Security）
 
-## Secret Management
+> 安全是特性，不是事后补救。每次提交前必须通过安全检查。
+
+## 密钥管理
 
 ```typescript
-// NEVER: Hardcoded secrets
+// ❌ 硬编码密钥（绝对禁止）
 const apiKey = "sk-proj-xxxxx"
 
-// ALWAYS: Environment variables
+// ✅ 使用环境变量
 const apiKey = process.env.OPENAI_API_KEY
 if (!apiKey) {
   throw new Error('OPENAI_API_KEY not configured')
 }
 ```
 
-## Mandatory Security Checks
+## 提交前强制检查清单
 
-Before ANY commit:
-- [ ] No hardcoded secrets (API keys, passwords, tokens)
-- [ ] All user inputs validated
-- [ ] SQL injection prevention (parameterized queries)
-- [ ] XSS prevention (sanitized HTML)
-- [ ] CSRF protection enabled
-- [ ] Authentication/authorization verified
-- [ ] Rate limiting on all endpoints
-- [ ] Error messages don't leak sensitive data
+- [ ] 无硬编码密钥（API Key、密码、Token）
+- [ ] 所有用户输入已校验（Zod schema）
+- [ ] SQL 注入防护（参数化查询 / ORM 内置防护）
+- [ ] XSS 防护（HTML 净化 / 转义输出）
+- [ ] CSRF 保护已启用（有表单提交时）
+- [ ] 身份认证/授权已验证
+- [ ] 所有端点已限流
+- [ ] 错误消息不泄露敏感数据（不返回堆栈、内部路径等）
 
-## Agent Support
+## 常见安全漏洞防范
 
-- Use **security-reviewer** agent for comprehensive security audits
+| 漏洞 | 防范方式 |
+|------|----------|
+| SQL 注入 | 使用 ORM / 参数化查询 |
+| XSS | 输出转义、CSP 头、HTML Sanitizer |
+| CSRF | SameSite Cookie、CSRF Token |
+| SSRF | 白名单域名 + 不响应内网 IP |
+| IDOR (越权) | 每次操作验证资源所有权 |
+| 敏感数据泄露 | 日志脱敏、错误信息泛化 |
+
+## Agent 支持
+
+- 使用 **security-reviewer** agent 进行全面的安全审计

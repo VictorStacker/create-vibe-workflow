@@ -4,6 +4,8 @@ import { fileURLToPath } from 'node:url';
 import ejs from 'ejs';
 import chalk from 'chalk';
 import type { UserConfig } from './questions.js';
+import { getClaudeMdTemplate, getSkillsRecommendPath } from './questions.js';
+import { appendCLAUDEmd as appendCLAUDEmdUtil, mergeSettingsJson } from './utils.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const TEMPLATES_DIR = path.resolve(__dirname, '..', 'templates');
@@ -82,48 +84,15 @@ function mergeSettings(existingPath: string, newContent: string): string {
   }
 
   const newSettings = JSON.parse(newContent);
-  const merged = deepMerge(existing, newSettings);
-  return JSON.stringify(merged, null, 2) + '\n';
+  return mergeSettingsJson(existing, newSettings);
 }
 
-function deepMerge(target: Record<string, unknown>, source: Record<string, unknown>): Record<string, unknown> {
-  const result = { ...target };
-  for (const key of Object.keys(source)) {
-    if (key === 'meta') continue;
-    if (isObject(source[key]) && isObject(result[key])) {
-      result[key] = deepMerge(
-        result[key] as Record<string, unknown>,
-        source[key] as Record<string, unknown>,
-      );
-    } else {
-      result[key] = source[key];
-    }
-  }
-  return result;
-}
-
-function isObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
+// (appendCLAUDEmd 核心逻辑已移至 src/utils.ts 并导出为 appendCLAUDEmdUtil)
+// 这里保留文件 I/O 包装
 function appendCLAUDEmd(existingPath: string, newContent: string): string {
   if (!fs.existsSync(existingPath)) return newContent;
-
   const existing = fs.readFileSync(existingPath, 'utf-8');
-  const markerStart = '<!-- WORKFLOW-START -->';
-  const markerEnd = '<!-- WORKFLOW-END -->';
-
-  if (existing.includes(markerStart)) {
-    const before = existing.substring(0, existing.indexOf(markerStart));
-    const after = existing.substring(existing.indexOf(markerEnd) + markerEnd.length);
-    const workflowSection = newContent.substring(
-      newContent.indexOf(markerStart),
-      newContent.indexOf(markerEnd) + markerEnd.length,
-    );
-    return before + workflowSection + after;
-  }
-
-  return existing + '\n' + newContent;
+  return appendCLAUDEmdUtil(existing, newContent);
 }
 
 export async function generate(config: UserConfig): Promise<FileResult[]> {
@@ -190,9 +159,10 @@ export async function generate(config: UserConfig): Promise<FileResult[]> {
     }
   }
 
-  // CLAUDE.md
+  // CLAUDE.md — 根据技术栈适配器选择模板
   console.log(chalk.dim('\n📄 生成 CLAUDE.md...'));
-  const claudeTemplate = path.join(TEMPLATES_DIR, 'claude-md', 'CLAUDE.zh-CN.md');
+  const claudeMdRelative = getClaudeMdTemplate(config.techStack);
+  const claudeTemplate = path.join(TEMPLATES_DIR, 'claude-md', claudeMdRelative || 'CLAUDE.zh-CN.md');
   try {
     const rendered = renderTemplate(claudeTemplate, vars);
     const target = path.join(targetDir, 'CLAUDE.md');
@@ -222,13 +192,15 @@ export async function generate(config: UserConfig): Promise<FileResult[]> {
     console.log(chalk.red(`  ❌ settings.json — ${(err as Error).message}`));
   }
 
-  // Skills recommend (if nestjs-nextjs adapter)
-  if (config.techStack === 'nestjs-nextjs') {
-    const skillsRecPath = path.resolve(__dirname, '..', 'adapters', 'nestjs-nextjs', 'skills.recommend.json');
+  // Skills recommend (根据技术栈适配器加载)
+  const skillsAdapter = getSkillsRecommendPath(config.techStack);
+  if (skillsAdapter) {
+    const skillsRecPath = path.resolve(__dirname, '..', 'adapters', skillsAdapter);
     if (fs.existsSync(skillsRecPath)) {
       const target = path.join(claudeDir, 'skills.recommend.json');
       fs.copyFileSync(skillsRecPath, target);
       manifestFiles.push(target);
+      console.log(chalk.dim(`  ✅ skills.recommend.json (${config.techStack})`));
     }
   }
 
@@ -256,15 +228,107 @@ export async function generate(config: UserConfig): Promise<FileResult[]> {
   return results;
 }
 
+// 已知的工作流生成文件模式（用于 fallback 清理）
+const WORKFLOW_PATTERNS = [
+  '.claude/rules/development-workflow.md',
+  '.claude/rules/coding-style.md',
+  '.claude/rules/git-workflow.md',
+  '.claude/rules/security.md',
+  '.claude/rules/testing.md',
+  '.claude/rules/patterns.md',
+  '.claude/rules/agents.md',
+  '.claude/hooks/post-commit-check.js',
+  '.claude/hooks/check-deps.mjs',
+  '.claude/settings.json',
+  '.claude/skills.recommend.json',
+  '.claude/.generated-manifest.json',
+];
+
+/**
+ * Fallback 清理：当 manifest 不存在或损坏时，
+ * 基于已知的文件模式尝试清理工作流生成的文件。
+ */
+function fallbackCleanup(targetDir: string): void {
+  const removed: string[] = [];
+  const skipped: string[] = [];
+
+  for (const pattern of WORKFLOW_PATTERNS) {
+    const fullPath = path.join(targetDir, pattern);
+    if (fs.existsSync(fullPath)) {
+      try {
+        fs.rmSync(fullPath, { recursive: true });
+        removed.push(pattern);
+      } catch {
+        skipped.push(pattern);
+      }
+    }
+  }
+
+  // 尝试清理 CLAUDE.md 中的 workflow 标记区域
+  const claudeMdPath = path.join(targetDir, 'CLAUDE.md');
+  if (fs.existsSync(claudeMdPath)) {
+    try {
+      const content = fs.readFileSync(claudeMdPath, 'utf-8');
+      const markerStart = '<!-- WORKFLOW-START -->';
+      const markerEnd = '<!-- WORKFLOW-END -->';
+      if (content.includes(markerStart) && content.includes(markerEnd)) {
+        const before = content.substring(0, content.indexOf(markerStart));
+        const after = content.substring(content.indexOf(markerEnd) + markerEnd.length);
+        // 如果清理后内容为空或只有空白，删除文件；否则写回
+        const cleaned = (before + after).trim();
+        if (cleaned.length === 0) {
+          fs.unlinkSync(claudeMdPath);
+          removed.push('CLAUDE.md');
+        } else {
+          fs.writeFileSync(claudeMdPath, cleaned + '\n', 'utf-8');
+          removed.push('CLAUDE.md (workflow section removed)');
+        }
+      }
+    } catch {
+      skipped.push('CLAUDE.md');
+    }
+  }
+
+  if (removed.length > 0) {
+    console.log(chalk.dim('\n  🧹 Fallback 清理已完成：'));
+    for (const f of removed) {
+      console.log(chalk.dim(`     ✅ ${f}`));
+    }
+  }
+  if (skipped.length > 0) {
+    console.log(chalk.yellow(`\n  ⚠️  以下文件无法自动清理（可能需要手动删除）：`));
+    for (const f of skipped) {
+      console.log(chalk.yellow(`     ❌ ${f}`));
+    }
+  }
+}
+
 export async function uninstall(targetDir: string): Promise<void> {
   const manifestPath = path.join(targetDir, '.claude', '.generated-manifest.json');
+
   if (!fs.existsSync(manifestPath)) {
-    console.log(chalk.yellow('⚠️  未找到安装清单，无法自动卸载'));
-    console.log(chalk.dim('请手动删除 .claude/ 目录及相关文件'));
+    console.log(chalk.yellow('\n⚠️  未找到安装清单（.generated-manifest.json）'));
+    console.log(chalk.dim('  尝试基于已知文件模式进行 fallback 清理...\n'));
+    fallbackCleanup(targetDir);
+    console.log(chalk.green('\n✅ Fallback 清理完成'));
     return;
   }
 
-  const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
+  // 尝试解析 manifest，如果损坏则 fallback
+  let manifest: { files?: string[] };
+  try {
+    manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
+    if (!Array.isArray(manifest.files)) throw new Error('invalid manifest format');
+  } catch {
+    console.log(chalk.yellow('\n⚠️  安装清单已损坏，无法正常读取'));
+    console.log(chalk.dim('  切换到 fallback 清理模式...\n'));
+    fs.rmSync(manifestPath, { force: true });
+    fallbackCleanup(targetDir);
+    console.log(chalk.green('\n✅ Fallback 清理完成'));
+    return;
+  }
+
+  // 正常卸载流程
   const backupDir = path.join(targetDir, '.claude', '.backup');
   ensureDir(backupDir);
 

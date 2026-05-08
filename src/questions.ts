@@ -1,13 +1,42 @@
 import inquirer from 'inquirer';
 
+export type TechStackType = 'nestjs-nextjs' | 'next-only' | 'node-api' | 'other';
+
 export interface UserConfig {
   projectName: string;
-  techStack: 'nestjs-nextjs' | 'other';
+  techStack: TechStackType;
   userLevel: 'vibe-coder' | 'developer';
   modules: string[];
   language: 'zh-CN';
   overwrite: boolean;
   targetDir: string;
+}
+
+/** 支持的适配器映射（techStack → 模板子目录） */
+export const ADAPTER_MAP: Record<string, string> = {
+  'nestjs-nextjs': 'CLAUDE.zh-CN.md',           // 使用默认模板 templates/claude-md/
+  'next-only': 'next-only/CLAUDE.zh-CN.md',
+  'node-api': 'node-api/CLAUDE.zh-CN.md',
+};
+
+/**
+ * 获取指定技术栈对应的 CLAUDE.md 模板路径（相对于 templates/claude-md/）
+ * 返回 null 表示使用默认模板
+ */
+export function getClaudeMdTemplate(techStack: string): string | null {
+  return ADAPTER_MAP[techStack] ?? null;
+}
+
+/**
+ * 获取指定技术栈对应的 skills.recommend.json 路径（相对于 adapters/）
+ * 返回 null 表示该技术栈没有推荐技能文件
+ */
+export function getSkillsRecommendPath(techStack: string): string | null {
+  const knownAdapters = ['nestjs-nextjs', 'next-only', 'node-api'];
+  if (knownAdapters.includes(techStack)) {
+    return `${techStack}/skills.recommend.json`;
+  }
+  return null;
 }
 
 export async function askQuestions(): Promise<UserConfig> {
@@ -28,7 +57,9 @@ export async function askQuestions(): Promise<UserConfig> {
       name: 'techStack',
       message: '选择技术栈：',
       choices: [
-        { name: 'NestJS + Next.js（默认推荐）', value: 'nestjs-nextjs' },
+        { name: 'NestJS + Next.js（全栈，默认推荐）', value: 'nestjs-nextjs' },
+        { name: 'Next.js only（纯前端）', value: 'next-only' },
+        { name: 'Node.js API（纯后端 Express/Fastify）', value: 'node-api' },
         { name: '其他技术栈（手动配置）', value: 'other' },
       ],
     },

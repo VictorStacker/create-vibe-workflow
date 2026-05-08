@@ -82,6 +82,9 @@ async function loadUser(userId: string): Promise<User> {
 }
 ```
 
+> **业务层统一错误类（AppError / NotFoundError / ValidationError）及使用示例见 `.claude/rules/patterns.md` § 错误处理统一模式**
+> 本节专注底层错误收窄技巧，patterns.md 定义上层错误分类体系。
+
 ## 输入校验
 
 使用 Zod 做 schema 驱动的校验，并从 schema 推断类型：

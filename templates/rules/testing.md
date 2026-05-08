@@ -36,6 +36,8 @@ paths:
 | 6 | 验证覆盖率 | 达到 **80%+** |
 
 > **禁止跳过步骤 1-2 直接写实现。**
+>
+> TDD 在 9 步工作流中为第⑤步，完整流程（含跳过条件 / 完成标志）见 `.claude/rules/development-workflow.md`
 
 ## 测试文件组织
 
@@ -64,8 +66,8 @@ describe('{UnitUnderTest}', () => {})             # 测试分组
 
 ## Agent 支持
 
-- **e2e-runner** — Playwright E2E 测试专家
-- **tdd-guide** — TDD 工作流执行助手
+- **e2e-testing** — Playwright E2E 测试专家
+- **tdd-workflow** — TDD 工作流执行助手
 
 ## 反模式（禁止）
 

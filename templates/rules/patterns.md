@@ -83,6 +83,9 @@ export class UserService {
 
 ## 错误处理统一模式
 
+> **底层错误收窄技巧（unknown → Error、async/await try-catch）见 `.claude/rules/coding-style.md` § 错误处理**
+> 本节定义业务层错误分类体系，与 coding-style.md 互补。
+
 ```typescript
 // 自定义业务错误类
 export class AppError extends Error {

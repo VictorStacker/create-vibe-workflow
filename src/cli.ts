@@ -76,6 +76,7 @@ async function healthCheck(targetDir: string): Promise<void> {
     { name: 'gstack', dir: 'gstack' },
     { name: 'superpowers', dir: 'superpowers' },
     { name: 'openspec (可选)', dir: 'openspec', optional: true },
+    { name: 'everything-claude-code (可选)', dir: 'everything-claude-code', optional: true },
   ];
   for (const dep of deps as Array<{ name: string; dir: string; optional?: boolean }>) {
     const exists = fs.existsSync(join(skillsDir, dep.dir));

@@ -11,12 +11,13 @@ const homeDir = homedir();
 const skillsDir = join(homeDir, '.claude', 'skills');
 
 const REQUIRED = [
-  { name: 'gstack', dir: 'gstack', install: 'cd ~/.claude/skills && git clone https://github.com/garrytan/gstack.git gstack' },
-  { name: 'superpowers', dir: 'superpowers', install: 'https://github.com/anthropics/claude-code-superpowers' },
+  { name: 'gstack', dir: 'gstack', install: 'https://github.com/garrytan/gstack' },
+  { name: 'superpowers', dir: 'superpowers', install: 'https://github.com/obra/superpowers' },
 ];
 
 const OPTIONAL = [
-  { name: 'openspec', dir: 'openspec', install: 'npm install -g @anthropic/openspec' },
+  { name: 'openspec', dir: 'openspec', install: 'https://github.com/Fission-AI/OpenSpec' },
+  { name: 'everything-claude-code', dir: 'everything-claude-code', install: 'https://github.com/affaan-m/everything-claude-code' },
 ];
 
 const missing = [];

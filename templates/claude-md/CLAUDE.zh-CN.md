@@ -17,13 +17,7 @@
 
 ### 标准开发流程
 
-```
-① 需求澄清 → ② 计划拆分 → ③ 研究复用
-→ ④ TodoList编写 → ⑤ TDD开发 → ⑥ 代码审查
-→ ⑦ 安全审查 → ⑧ 文档反写 → ⑨ 提交归档
-```
-
-> 各步骤详细说明见 `.claude/rules/development-workflow.md`
+> 完整 9 步流程（含各步骤完成标志 / 跳过条件）见 `.claude/rules/development-workflow.md`
 
 ### 常用命令
 
@@ -50,8 +44,8 @@
 |------|------|
 | 代码风格 | 见 `.claude/rules/coding-style.md` |
 | Git 规范 | 见 `.claude/rules/git-workflow.md` |
-| 测试要求 | 覆盖率 ≥80%，TDD 流程强制执行 |
-| 安全标准 | 提交前必须通过安全检查清单 |
+| 测试要求 | 见 `.claude/rules/testing.md` |
+| 安全标准 | 见 `.claude/rules/security.md`（仅 auth/finance/system 模块强制执行） |
 | 设计模式 | 统一使用 Repository + Service 层 |
 
 <!-- WORKFLOW-END -->

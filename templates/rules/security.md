@@ -7,7 +7,10 @@ paths:
 ---
 # 安全规范（Security）
 
-> 安全是特性，不是事后补救。每次提交前必须通过安全检查。
+> 安全是特性，不是事后补救。
+> **触发条件**: 仅 auth / finance / system 模块（或涉及用户数据、支付、权限的代码变更）。
+> **跳过条件**: 非安全敏感模块（纯 UI 调整、文档修改、重构不涉数据流等）。
+> 完整触发/跳过规则见 `development-workflow.md` 第 ⑦ 步。
 
 ## 密钥管理
 
@@ -46,4 +49,4 @@ if (!apiKey) {
 
 ## Agent 支持
 
-- 使用 **security-reviewer** agent 进行全面的安全审计
+- 使用 **security-review** skill 进行全面的安全审计

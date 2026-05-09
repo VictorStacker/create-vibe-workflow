@@ -1,0 +1,224 @@
+# E2E Testing — 端到端自动化测试
+
+> 使用此 skill 时：编写浏览器自动化测试、设计测试套件结构、调试测试失败时。
+
+## 测试结构规范
+
+### 测试文件组织
+
+```text
+e2e/
+├── specs/                        # 测试用例文件
+│   ├── auth/                     # 按功能模块分组
+│   │   ├── login.spec.{ext}
+│   │   ├── register.spec.{ext}
+│   │   └── password-reset.spec.{ext}
+│   ├── checkout/
+│   │   ├── cart.spec.{ext}
+│   │   ├── payment.spec.{ext}
+│   │   └── order-confirmation.spec.{ext}
+│   └── profile/
+│       └── edit-profile.spec.{ext}
+├── pages/                        # Page Object 模型
+│   ├── LoginPage.{ext}
+│   ├── CheckoutPage.{ext}
+│   └── ProfilePage.{ext}
+├── fixtures/                     # 测试夹具（登录状态、测试数据）
+│   ├── auth-fixtures.{ext}
+│   └── test-users.json
+└── helpers/                      # 工具函数
+    ├── test-utils.{ext}
+    └── db-helpers.{ext}
+```
+
+### 测试用例命名
+
+```text
+// 描述格式：{功能} — {场景} — {期望结果}
+
+"用户登录 — 输入正确凭据 — 重定向到首页"
+"用户登录 — 输入错误密码 — 显示错误提示"
+"用户登录 — 连续 5 次失败 — 账号被临时锁定"
+```
+
+## Page Object 模式
+
+### 结构规范
+
+```text
+每个页面一个类，包含：
+  1. 页面选择器（data-testid 优先）
+  2. 页面操作（方法）
+  3. 页面断言（验证方法）
+
+示例结构：
+  class LoginPage {
+    // === 选择器 ===
+    emailInput()           // data-testid="login-email"
+    passwordInput()        // data-testid="login-password"
+    submitButton()         // data-testid="login-submit"
+    errorMessage()         // data-testid="login-error"
+    loadingIndicator()     // data-testid="login-loading"
+
+    // === 操作 ===
+    async navigate()       // 导航到登录页
+    async login(email, password)  // 执行登录流程
+    async getErrorMessage()       // 获取错误文案
+
+    // === 断言 ===
+    async expectLoginSuccess()    // 验证登录成功
+    async expectValidationError() // 验证验证错误
+    async expectRateLimited()     // 验证限流提示
+  }
+```
+
+### Selector 策略
+
+```text
+【优先级从高到低】
+
+1. data-testid（首选）
+   [data-testid="login-submit"]
+   优点：与样式/语义解耦，UI 变更不影响测试
+
+2. 文本内容（推荐）
+   text="提交"
+   优点：接近用户视角
+   注意：注意国际化文案变化
+
+3. ARIA 属性
+   [role="button"][name="提交"]
+   优点：语义清晰，辅助无障碍测试
+
+4. CSS 选择器（次选）
+   .form > .actions > button.primary
+   注意：对 UI 变化敏感
+
+5. XPath（不推荐，除非上面都不行）
+   脆弱、难读、POS 维护
+```
+
+## Wait 策略
+
+```text
+【规则】
+  - 优先用自动等待（内置 auto-waiting）
+  - 特定场景用显式等待
+  - 禁止固定 sleep/等待
+
+推荐方式（按优先级）：
+  1. 自动等待
+     点击/输入等操作自动等待元素可交互
+
+  2. 定位器断言
+     expect(element).toBeVisible()
+     自动重试直到断言通过
+
+  3. 特定 URL/网络等待
+     waitForURL('**/dashboard')
+     waitForResponse(res => res.url().includes('/api/orders'))
+
+  4. 自定义等待（最后一招）
+     waitForFunction(() => document.title === 'Dashboard')
+
+不推荐：
+  wait(3000)  // 固定等待 — 慢且不可靠
+```
+
+## 测试数据管理
+
+```text
+【测试数据策略】
+
+独立数据：
+  每个测试创建自己的数据
+  优点：测试隔离性好
+  缺点：慢
+
+共享数据：
+  beforeAll 创建一次，多个测试复用
+  优点：快
+  缺点：测试间耦合
+
+推荐：独立数据（默认）+ 共享数据（只读场景）
+
+数据清理：
+  - 每个测试清理自己创建的数据
+  - 或使用事务回滚（DB 测试）
+  - 或使用测试容器（Docker 重置）
+
+测试账号：
+  - 专用测试账号（不要用真实用户）
+  - 每个环境使用不同账号
+  - 密码使用环境变量或 CI secret
+```
+
+## 失败诊断机制
+
+```text
+失败时自动收集：
+
+截图（Screenshot）：
+  - 测试失败时自动截图
+  - 保留失败时的页面状态
+  - 命名：{测试文件}-{测试名}-{时间戳}.png
+
+视频（Video）：
+  - 录制整个测试运行过程
+  - 回放看到每一步操作
+  - 注意存储空间（差异压缩）
+
+Trace（追踪）：
+  - 记录每个操作的完整上下文
+  - 包括：网络请求、Console 日志、源码映射
+  - 可回放查看失败前的操作序列
+
+Console 日志：
+  - 收集所有 console.error / console.warn
+  - 关联到具体测试用例
+```
+
+## CI 集成配置
+
+```text
+CI 运行策略：
+  - 只在包含 E2E 相关变更时触发
+  - 并行运行（分片）减少等待时间
+  - 重试策略：失败自动重试 1-2 次（针对 flaky 测试）
+
+并行策略：
+  shardCount: 4               // 4 个分片并行
+  workers: 2                   // 每个分片 2 个 worker
+
+重试策略：
+  retries: 2                   // 失败重试 2 次
+  maxFailures: 10              // 超过 10 个失败停止
+
+环境变量：
+  BASE_URL                     // 测试目标 URL
+  CI                           // CI 环境标识
+  RETRY_COUNT                  // 重试次数
+```
+
+## Flaky 测试处理
+
+```text
+识别 flaky 测试：
+  - 同一测试有时过有时不过
+  - 和代码变更无关的失败
+
+常见原因及修复：
+  原因                    | 修复
+  ------------------------|-------------------------------
+  时序问题（异步未完成）    | 用显式等待代替固定等待
+  测试间数据干扰           | 每个测试独立数据
+  环境/网络不稳定          | 合理重试策略
+  选择器脆弱               | 使用 data-testid
+  状态未清理               | beforeEach 清理状态
+
+处理流程：
+  1. 标记为 flaky 但不阻塞 CI
+  2. 分析失败原因（trace + screenshot）
+  3. 修复根本原因
+  4. 验证不再 flaky 后取消标记
+```

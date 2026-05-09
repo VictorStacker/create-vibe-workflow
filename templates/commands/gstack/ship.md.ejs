@@ -1,0 +1,256 @@
+---
+name: "Ship"
+description: "准备并创建 Pull Request — merge base、测试、审查、版本号、changelog、PR。源自 gstack /ship"
+category: "Release"
+tags: ["发布", "PR", "ship", "gstack"]
+---
+
+# Ship
+
+## 职责
+
+将当前分支的变更通过 Pull Request 发布。涵盖从合并 base 分支到创建 PR 的完整流程。
+
+**这是开发工作流的第 9 步（最终步）**——其他步骤未完成时不应运行此命令。
+
+## 工作模式
+
+<%= USER_LEVEL === 'vibe-coder' ? `
+### 面向非专业编程人员（Vibe Coder）
+
+Ship 就是"把你的代码变化打包提交"的过程：
+- 每一步会解释"现在在做什么"
+- git 操作会翻译成通俗语言
+- 如果出错，会明确告诉你哪里有问题、怎么修
+- 最后会生成一个 PR——就像"提交作业给老师检查"
+- 常见的术语解释：
+  - "merge" = "把最新代码合并进来"
+  - "branch" = "你的工作副本"
+  - "PR" = "请求把你的代码合并到主分支"
+` : `
+### 面向专业开发者
+
+- 自动检测 base branch（master/main）
+- 自动处理版本号和 changelog
+- 内部调用 /review 和 /verify
+- 输出符合项目规范的 PR
+` %>
+
+## 前提条件
+
+在运行 `/ship` 前，确认以下条件已满足：
+
+- [ ] 当前分支有未推送的 commit
+- [ ] 所有 P0 任务已完成（检查 `todolist.md`）
+- [ ] 没有未提交的变更（`git status` 干净，或已 stage）
+- [ ] base branch (master/main) 可访问
+
+如果条件不满足，向用户报告并等待修复。
+
+## 步骤
+
+### 步骤 1：检测并合并 base branch
+
+自动检测 base branch（master 或 main）：
+
+```bash
+# 检测 base branch
+BASE_BRANCH=$(git branch -l master main | head -1 | tr -d '* ')
+echo "Base branch: $BASE_BRANCH"
+
+# 获取最新
+git fetch origin $BASE_BRANCH
+
+# 合并
+git merge origin/$BASE_BRANCH --no-edit
+```
+
+**如果合并冲突**：
+<%= USER_LEVEL === 'vibe-coder' ? `
+- 告诉你哪些文件有冲突
+- 这是正常情况——说明你和别人改了同一个文件
+- 帮你解决冲突（保留双方的修改）
+- 解决后继续流程
+` : `
+- 列出冲突文件
+- 提示手动解决或协助解决
+- 解决后继续
+` %>
+
+### 步骤 2：运行 /verify
+
+自动调用 `/verify` 进行完整性检查：
+
+- 编译检查
+- 类型检查
+- Lint 检查
+- 测试套件（全部测试通过 + 覆盖率 ≥ 80%）
+- 安全扫描
+- Diff 审查
+
+如果验证失败，**中止流程**：
+
+```
+❌ Verification 失败！
+
+原因：<具体失败阶段和信息>
+
+请修复后重新运行 /ship。
+```
+
+### 步骤 3：运行 /review
+
+自动调用 `/review` 进行代码审查。
+
+如果存在 CRITICAL 问题：
+
+```
+❌ 代码审查发现 CRITICAL 问题！
+
+CRITICAL 问题列表：
+1. <问题 1>
+2. <问题 2>
+
+请修复 CRITICAL 问题后重新运行 /ship。
+```
+
+**HIGH 及以下级别问题**：记录但不阻断。
+
+### 步骤 4：版本号（如适用）
+
+如果项目根目录存在 `VERSION` 文件，根据 semver 规范自动递增：
+
+```bash
+# 读取当前版本
+VERSION=$(cat VERSION)
+
+# 根据 commit 类型决定递增方式
+# feat → minor, fix → patch, breaking → major
+# 更新 VERSION 文件
+echo "<new-version>" > VERSION
+```
+
+**不自动提交 VERSION 变更**——让用户确认：
+
+```
+当前版本：v1.2.3
+建议版本：v1.3.0（根据 feat 提交自动推断）
+确认更新？[Y/n]
+```
+
+### 步骤 5：更新 CHANGELOG（如适用）
+
+如果存在 `CHANGELOG.md` 或 `CHANGELOG.md`，追加变更记录：
+
+```
+## [1.3.0] - <YYYY-MM-DD>
+
+### Added
+- <新功能描述>
+
+### Fixed
+- <Bug 修复描述>
+
+### Changed
+- <重构/优化描述>
+```
+
+根据 git log 自动生成变更内容：
+
+```bash
+git log <base-branch>..HEAD --oneline --no-decorate
+```
+
+### 步骤 6：提交变更
+
+如果存在 VERSION 和 CHANGELOG 的修改，提交它们：
+
+```bash
+git add VERSION CHANGELOG.md
+git commit -m "chore: bump version to v<新版本>"
+```
+
+### 步骤 7：推送并创建 PR
+
+```bash
+# 获取当前分支名
+BRANCH=$(git rev-parse --abbrev-ref HEAD)
+
+# 推送
+git push -u origin $BRANCH
+
+# 创建 PR
+gh pr create \
+  --title "<70 字符以内的 PR 标题>" \
+  --body "<PR 描述>"
+```
+
+**PR 标题格式**：`<type>: <简短描述>`（不超过 70 字符）
+
+**PR 描述格式**：
+
+```
+## Summary
+
+- <1-3 点说明变更内容>
+- <按重要性排序>
+
+## Test Plan
+
+- [ ] 单元测试通过
+- [ ] 集成测试通过
+- [ ] 手动测试关键路径
+- [ ] 检查无回归
+
+Closes #<issue-number>（如有）
+```
+
+<%= USER_LEVEL === 'vibe-coder' ? `
+### PR 描述示例
+
+PR 标题和描述会自动生成。标题简短说明"做了什么"，描述里详细列出"改了哪些"和"怎么验证"。
+` : '' %>
+
+### 步骤 8：输出摘要
+
+```
+## Ship 完成 🚢
+
+分支：<branch-name> → <base-branch>
+PR：<PR URL>
+
+### 变更统计
+- 文件变更：<N> 个
+- 新增行：+<N>
+- 删除行：-<N>
+
+### 提交列表
+1. <commit-hash> <commit-message>
+2. <commit-hash> <commit-message>
+
+### 验证结果
+- /verify：✅ 通过
+- /review：✅ 通过
+
+### 版本：v<新版本>（如有）
+```
+
+## 错误处理
+
+| 错误场景 | 处理方式 |
+|---------|---------|
+| 合并冲突 | 报告冲突文件，协助解决后重试 |
+| 测试失败 | 报告失败项，等待修复后重试 |
+| Verify 失败 | 中止流程，报告失败详情 |
+| Review CRITICAL | 中止流程，要求修复 CRITICAL |
+| Push 失败 | 检查远程权限，重试 |
+| PR 创建失败 | 检查 gh 认证，重试 |
+
+## 提示
+
+- `/ship` 应该在所有 P0 任务完成后运行
+- 如果当前分支还没有 push 过，会自动处理
+- 如果项目没有 VERSION 文件，跳过版本号步骤
+- 如果项目没有 CHANGELOG，跳过 changelog 步骤
+- 保持 PR 标题简短（< 70 字符）——标题太长会被截断
+- PR 描述包含测试计划——方便 reviewer 验证

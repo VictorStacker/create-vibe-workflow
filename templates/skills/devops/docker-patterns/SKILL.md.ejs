@@ -1,0 +1,215 @@
+# Docker Patterns — Docker 容器化模式
+
+> 使用此 skill 时：编写 Dockerfile、配置 Compose、优化镜像、排查容器问题。
+
+## 开发环境配置
+
+### Docker Compose 结构
+
+```text
+compose.yaml
+├── services:
+│   ├── app          # 应用服务
+│   ├── db           # 数据库
+│   ├── cache        # 缓存（Redis / Memcached）
+│   ├── queue        # 消息队列
+│   └── proxy        # 反向代理（开发用）
+├── volumes:         # 持久化数据
+└── networks:        # 网络隔离
+```
+
+### 开发环境要点
+
+```text
+【热重载】
+  - 挂载源码目录到容器内（volumes）
+  - 应用进程支持文件变化自动重启
+
+【环境变量】
+  - 用 .env 文件管理（不提交到 git）
+  - compose.yaml 引用 ${VARIABLE:-default}
+
+【端口映射】
+  - 只暴露需要的端口
+  - 避免端口冲突（映射到随机主机端口）
+
+示例卷挂载：
+  volumes:
+    - ./src:/app/src           # 源码热重载
+    - /app/node_modules        # 匿名卷（覆盖，防止覆盖容器内依赖）
+```
+
+## 多阶段构建
+
+### 通用模式
+
+```text
+【第一阶段：构建（Builder）】
+  FROM base AS builder
+  WORKDIR /app
+  COPY package.json ./
+  RUN install dependencies
+  COPY . .
+  RUN build
+
+【第二阶段：运行（Runtime）】
+  FROM runtime-base
+  WORKDIR /app
+  COPY --from=builder /app/dist ./dist
+  COPY --from=builder /app/node_modules ./node_modules
+  EXPOSE 3000
+  CMD ["run"]
+```
+
+### 优化技巧
+
+```text
+缓存利用：
+  1. 先复制依赖配置文件（package.json / requirements.txt）
+  2. 安装依赖（这一层会缓存，源码不变时不重跑）
+  3. 再复制源码
+  4. 最后构建
+
+  # 好 — 利用缓存
+  COPY package.json .
+  RUN npm install
+  COPY src/ .
+  RUN npm run build
+
+  # 坏 — 每次重装依赖
+  COPY . .
+  RUN npm install && npm run build
+
+减少层数：
+  - 合并 RUN 命令（&& 连接）
+  - 清理缓存文件（apt-get clean、npm cache clean --force）
+  - 多阶段构建只复制产物
+
+基础镜像选择：
+  alpine       → 最小体积（但 musl libc 可能不兼容）
+  slim         → Debian 精简版（推荐）
+  distroless   → 最小攻击面（但调试困难）
+  结论：首选 slim，需要最小体积用 distroless
+```
+
+## 安全最佳实践
+
+```text
+【不使用 root 用户运行】
+  RUN groupadd -r appuser && useradd -r -g appuser appuser
+  USER appuser
+
+【最小基础镜像】
+  - 越小的镜像 = 越小的攻击面
+  - 避免包含编译器、调试工具、包管理器
+
+【镜像漏洞扫描】
+  定期扫描：trivy / docker scan / snyk
+  CI 中集成：漏洞阻断（CRITICAL/HIGH）
+
+【其他安全措施】
+  - 不将敏感信息写入镜像（构建参数 vs 环境变量）
+  - 使用 secrets 挂载（BuildKit: --secret）
+  - READ_ONLY 根文件系统（read_only: true）
+  - 限制容器能力（cap_drop: ALL）
+  - 不暴露 Docker socket（除非绝对必要）
+```
+
+## 日志管理
+
+```text
+【原则】
+  应用 → stdout/stderr → Docker 收集 → 日志驱动 → 集中管理
+
+12-Factor App：
+  应用将日志写入 stdout/stderr
+  Docker 负责收集和路由
+
+生产环境日志驱动（compose.yaml）：
+  logging:
+    driver: "json-file"
+    options:
+      max-size: "10m"
+      max-file: "3"
+
+集中日志方案：
+  - 文件日志驱动 + Filebeat → Elasticsearch
+  - syslog 驱动 → 集中日志服务器
+  - awslogs / gcp 驱动 → 云平台日志服务
+```
+
+## 常见服务模板
+
+### PostgreSQL
+
+```text
+db:
+  image: postgres:16-alpine
+  environment:
+    POSTGRES_DB: ${DB_NAME}
+    POSTGRES_USER: ${DB_USER}
+    POSTGRES_PASSWORD: ${DB_PASSWORD}
+  volumes:
+    - pgdata:/var/lib/postgresql/data
+    - ./init-db:/docker-entrypoint-initdb.d  # 初始化脚本
+  healthcheck:
+    test: ["CMD-SHELL", "pg_isready -U ${DB_USER}"]
+    interval: 5s
+    timeout: 5s
+    retries: 5
+```
+
+### Redis
+
+```text
+cache:
+  image: redis:7-alpine
+  command: redis-server --requirepass ${REDIS_PASSWORD}
+  volumes:
+    - redis-data:/data
+  healthcheck:
+    test: ["CMD", "redis-cli", "ping"]
+    interval: 5s
+    timeout: 3s
+    retries: 5
+```
+
+### Nginx（反向代理）
+
+```text
+proxy:
+  image: nginx:alpine
+  volumes:
+    - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    - ./public:/var/www/public:ro
+  ports:
+    - "80:80"
+    - "443:443"
+  depends_on:
+    - app
+```
+
+## Docker 排查命令
+
+```text
+查看日志：
+  docker logs {container}                    # 标准日志
+  docker logs -f {container}                 # 实时追踪
+  docker logs --tail 100 {container}         # 只看最后 100 行
+
+检查进程：
+  docker exec {container} ps aux             # 运行了什么进程
+  docker top {container}                     # Docker 封装的 top
+
+进入容器调试：
+  docker exec -it {container} sh             # 进入容器（alpine）
+  docker exec -it {container} bash           # 进入容器（debian）
+
+资源监控：
+  docker stats {container}                   # CPU/内存/网络
+  docker inspect {container} | jq '.[0].State'  # 容器状态
+
+构建调试：
+  docker build --no-cache .                  # 无缓存构建
+  docker build --progress=plain .            # 详细构建输出
+```

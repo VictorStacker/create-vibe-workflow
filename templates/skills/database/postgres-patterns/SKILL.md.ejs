@@ -1,0 +1,235 @@
+# PostgreSQL Patterns — PostgreSQL 数据库模式
+
+> 使用此 skill 时：设计表结构、编写查询、优化数据库性能时。
+
+## 索引策略
+
+### 索引类型选择
+
+```text
+B-Tree（默认）：
+  适用：等值查询、范围查询、排序
+  不适用：全文搜索、数组包含
+
+Hash：
+  适用：等值查询（性能略高于 B-Tree）
+  不适用：范围查询、排序
+  注意：不记录大小，重建时需 REINDEX
+
+GiST：
+  适用：全文搜索、地理空间、范围重叠
+  示例：tsvector、geometry、timerange
+
+GIN：
+  适用：包含查询（数组、JSONB、全文搜索）
+  示例：JSONB 的 @> 操作符、数组的 @> 操作符
+
+BRIN：
+  适用：与物理存储顺序相关的大表（如时间序列）
+  优点：索引体积极小
+  注意：数据插入顺序须与索引列顺序接近
+```
+
+### 索引设计检查清单
+
+```text
+是否真正需要？
+  [ ] 这个查询是频繁执行的吗？
+  [ ] 表大到不用索引会慢吗？（<1000 行不需要）
+  [ ] 这个查询会随着数据增长变慢吗？
+
+索引列选择：
+  [ ] WHERE 子句中的列优先
+  [ ] JOIN 的关联列必须索引
+  [ ] ORDER BY 的列考虑包含在索引中
+  [ ] 高选择性的列优先（唯一值多）
+
+避免过度索引：
+  [ ] 不要为低频查询建索引
+  [ ] 不要重复索引（复合索引的前缀列不需要单独索引）
+  [ ] 写密集的表索引尽量少（每个索引增加写入开销）
+  [ ] 定期用 pg_stat_user_indexes 检查未使用索引
+
+复合索引：
+  [ ] = 条件的列放前面
+  [ ] 范围条件的列放后面
+  [ ] 查询条件中有多个 = 列时，任意顺序均可
+  [ ] 考虑 INCLUDE 列（覆盖索引）
+```
+
+## 数据类型选择
+
+```text
+【数值型】
+  整数：
+    smallint (2B, ±32K) → 枚举/状态码
+    integer   (4B, ±2B)  → 默认选择
+    bigint    (8B)       → 自增 ID 超 2B 时
+
+  小数：
+    numeric(p,s)  → 精确计算（金额）
+    double precision → 科学计算（允许小误差）
+
+【文本型】
+  text          → 没有长度限制，性能与 varchar 相同
+  varchar(n)    → 有长度约束时（如邮箱限制 254 字符）
+  citext        → 不区分大小写的文本（扩展）
+
+  选择规则：默认用 text，需要约束长度时用 varchar(n)
+
+【时间型】
+  timestamptz   → 首选（带时区，存储为 UTC）
+  timestamp     → 不需要时区时
+  date          → 只需要日期时
+  time          → 只需要时间时
+  interval      → 时间间隔
+
+【JSON vs JSONB】
+  json          → 只存不查（保留原格式、键顺序）
+  jsonb         → 需要查询/索引（二进制格式，去重键）
+
+  总结：90% 场景用 jsonb，只有日志归档等只存不查场景用 json
+
+【数组】
+  适用：标签、分类等有限集合
+  注意：数组查询不能利用普通 B-Tree 索引（需 GIN）
+```
+
+## 查询优化
+
+### N+1 查询检测
+
+```text
+症状：一次查询后循环内执行 N 次查询
+
+识别：
+  - 日志中出现大量相似查询
+  - 翻页/列表接口慢
+
+// ❌ N+1
+for each user {
+    query("SELECT * FROM orders WHERE user_id = ?", user.id)
+}
+
+// ✅ 批量查询
+userIds = users.map(u => u.id)
+orders = query("SELECT * FROM orders WHERE user_id = ANY(?)", [userIds])
+// 在应用层关联
+```
+
+### JOIN vs 子查询
+
+```text
+【优先 JOIN】
+  适用：
+    - 需要返回父表和子表的列
+    - 关联表行数不多
+
+  注意：
+    - JOIN 的表都应有索引
+    - 避免大表的 CROSS JOIN
+
+【子查询（EXISTS）】
+  适用：
+    - 只需要检查是否存在
+    - 关联条件是聚合结果
+
+  注意：
+    - EXISTS 找到第一条即停止，比 IN 快
+    - NOT EXISTS 比 NOT IN 安全（NOT IN 遇到 NULL 行为异常）
+
+总结：
+  90% 的关联查询用 JOIN
+  存在性检查用 EXISTS
+  聚合子查询用 CTE 或 LATERAL JOIN
+```
+
+### 分页策略
+
+```text
+【OFFSET/LIMIT】— 简单但大偏移量慢
+  适用：小数据集、前几页
+  问题：OFFSET 越大越慢（需要扫描并丢弃前面的行）
+
+  优化：用复合索引 + 覆盖索引减轻
+
+【游标分页（Keyset Pagination）】— 大数据集推荐
+  适用：无限滚动、实时数据
+  原理：用 WHERE 条件代替 OFFSET
+
+  SELECT * FROM users
+  WHERE createdAt < :lastCreatedAt OR (createdAt = :lastCreatedAt AND id < :lastId)
+  ORDER BY createdAt DESC, id DESC
+  LIMIT 20
+
+  优点：无论翻到第几页，性能恒定
+  缺点：不能直接跳转到特定页
+```
+
+### EXPLAIN 分析
+
+```text
+EXPLAIN ANALYZE {query};
+
+关键指标：
+  - seq scan → 考虑加索引
+  - rows 估算偏差大 → 更新统计信息（ANALYZE）
+  - actual time 大 → 确认瓶颈
+
+常见问题：
+  - 类型不匹配导致隐式转换 → 索引失效
+  - OR 条件 → 考虑 UNION ALL
+  - IN 子句大量值 → 考虑临时表或 ANY
+```
+
+## 约束与数据完整性
+
+```text
+NOT NULL — 默认用，除非真有理由允许 NULL
+UNIQUE — 保证业务唯一性（用户名、邮箱）
+CHECK — 业务规则（age > 0, status IN ('a','b','c')）
+FOREIGN KEY — 引用完整性（注意：会加锁）
+EXCLUDE — 排他约束（时间范围不重叠）
+
+注意：
+  - 外键约束创建和维护有开销
+  - 批量导入时可先禁用约束，导入后重建验证
+  - CHECK 约束比应用层验证更可靠
+```
+
+## Row-Level Security（RLS）
+
+```text
+适用：多租户隔离（每个用户只能看到自己的数据）
+
+实现：
+  1. 启用行级安全：ALTER TABLE {table} ENABLE ROW LEVEL SECURITY
+  2. 创建策略：允许/禁止特定操作
+
+示例：多租户隔离
+  CREATE POLICY tenant_isolation ON orders
+    USING (tenant_id = current_setting('app.tenant_id')::int)
+
+规则：
+  - RLS 应用层不可绕过
+  - 性能影响很小（查询只加一次过滤）
+  - 管理员应有一个绕过 RLS 的角色
+```
+
+## 连接池
+
+```text
+为什么需要连接池？
+  - 建立连接开销大（TCP + TLS + 认证）
+  - 数据库并发连接数有限
+
+配置要点：
+  - 池大小 = 2 × CPU 核心数 + 磁盘数（经验公式）
+  - 不是越大越好（过多连接→上下文切换→性能下降）
+  - 设置超时：连接超时、查询超时、闲置超时
+
+连接耗尽处理：
+  - 优先保证关键路径的连接
+  - 非关键操作降级（缓存结果 / 返回降级响应）
+  - 监控连接池使用率
+```

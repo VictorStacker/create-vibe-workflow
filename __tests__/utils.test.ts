@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { isObject, deepMerge, appendCLAUDEmd, mergeSettingsJson } from '../src/utils.js';
+import {
+  isObject, deepMerge, appendCLAUDEmd, mergeSettingsJson,
+  resolveSelectedSkills, getSkillTemplateDir, getRecommendedDomains,
+} from '../src/utils.js';
+import type { SkillManifest, SkillSelectionInput } from '../src/utils.js';
 
 // ────────────────────────────────────────────────
 // isObject
@@ -190,5 +194,176 @@ describe('mergeSettingsJson', () => {
     const source = { c: 3, d: 4 };
     const result = JSON.parse(mergeSettingsJson(existing, source));
     expect(result).toEqual({ a: 1, b: 2, c: 3, d: 4 });
+  });
+});
+
+// ────────────────────────────────────────────────
+// resolveSelectedSkills
+// ────────────────────────────────────────────────
+const TEST_MANIFEST: SkillManifest = {
+  version: 1,
+  domains: {
+    workflow: { always: true, label: 'workflow', desc: '', skills: ['tdd-workflow', 'coding-standards'] },
+    frontend: { projectTypes: ['web', 'fullstack'], label: 'frontend', desc: '', skills: ['frontend-patterns'] },
+    backend: { projectTypes: ['api', 'fullstack'], label: 'backend', desc: '', skills: ['backend-patterns'] },
+    database: { needsDb: true, label: 'database', desc: '', skills: ['postgres-patterns', 'database-migrations'] },
+    testing: { projectTypes: ['web', 'api', 'fullstack'], label: 'testing', desc: '', skills: ['e2e-testing'] },
+    devops: { manual: true, label: 'devops', desc: '', skills: ['docker-patterns', 'deployment-patterns'] },
+    advanced: { userLevel: 'developer', label: 'advanced', desc: '', skills: ['caveman', 'diagnose'] },
+  },
+};
+
+describe('resolveSelectedSkills', () => {
+  it('should always include workflow skills', () => {
+    const input: SkillSelectionInput = {
+      projectType: 'other', needsDb: false, userLevel: 'vibe-coder',
+      selectedDomains: ['workflow'],
+    };
+    const result = resolveSelectedSkills(input, TEST_MANIFEST);
+    expect(result).toContain('tdd-workflow');
+    expect(result).toContain('coding-standards');
+  });
+
+  it('should include frontend skills for web project', () => {
+    const input: SkillSelectionInput = {
+      projectType: 'web', needsDb: false, userLevel: 'vibe-coder',
+      selectedDomains: ['workflow', 'frontend', 'testing'],
+    };
+    const result = resolveSelectedSkills(input, TEST_MANIFEST);
+    expect(result).toContain('frontend-patterns');
+    expect(result).toContain('e2e-testing');
+  });
+
+  it('should include backend skills for fullstack project', () => {
+    const input: SkillSelectionInput = {
+      projectType: 'fullstack', needsDb: true, userLevel: 'vibe-coder',
+      selectedDomains: ['workflow', 'frontend', 'backend', 'database', 'testing'],
+    };
+    const result = resolveSelectedSkills(input, TEST_MANIFEST);
+    expect(result).toContain('backend-patterns');
+    expect(result).toContain('postgres-patterns');
+    expect(result).toContain('database-migrations');
+    expect(result).toContain('frontend-patterns');
+  });
+
+  it('should NOT include database skills when needsDb is false', () => {
+    const input: SkillSelectionInput = {
+      projectType: 'api', needsDb: false, userLevel: 'vibe-coder',
+      selectedDomains: ['workflow', 'backend', 'database', 'testing'],
+    };
+    const result = resolveSelectedSkills(input, TEST_MANIFEST);
+    expect(result).toContain('backend-patterns');
+    expect(result).not.toContain('postgres-patterns');
+    expect(result).not.toContain('database-migrations');
+  });
+
+  it('should include advanced skills for developer level', () => {
+    const input: SkillSelectionInput = {
+      projectType: 'fullstack', needsDb: true, userLevel: 'developer',
+      selectedDomains: ['workflow', 'frontend', 'backend', 'database', 'testing', 'advanced'],
+    };
+    const result = resolveSelectedSkills(input, TEST_MANIFEST);
+    expect(result).toContain('caveman');
+    expect(result).toContain('diagnose');
+  });
+
+  it('should NOT include advanced skills for vibe-coder', () => {
+    const input: SkillSelectionInput = {
+      projectType: 'fullstack', needsDb: true, userLevel: 'vibe-coder',
+      selectedDomains: ['workflow', 'frontend', 'backend', 'database', 'testing', 'advanced'],
+    };
+    const result = resolveSelectedSkills(input, TEST_MANIFEST);
+    expect(result).not.toContain('caveman');
+    expect(result).not.toContain('diagnose');
+  });
+
+  it('should include devops only when manually selected', () => {
+    const input: SkillSelectionInput = {
+      projectType: 'fullstack', needsDb: true, userLevel: 'vibe-coder',
+      selectedDomains: ['workflow', 'devops'],
+    };
+    const result = resolveSelectedSkills(input, TEST_MANIFEST);
+    expect(result).toContain('docker-patterns');
+    expect(result).toContain('deployment-patterns');
+  });
+
+  it('should NOT include devops when not selected', () => {
+    const input: SkillSelectionInput = {
+      projectType: 'fullstack', needsDb: true, userLevel: 'vibe-coder',
+      selectedDomains: ['workflow'],
+    };
+    const result = resolveSelectedSkills(input, TEST_MANIFEST);
+    expect(result).not.toContain('docker-patterns');
+  });
+
+  it('should return sorted unique skills', () => {
+    const input: SkillSelectionInput = {
+      projectType: 'web', needsDb: false, userLevel: 'vibe-coder',
+      selectedDomains: ['workflow', 'frontend', 'testing'],
+    };
+    const result = resolveSelectedSkills(input, TEST_MANIFEST);
+    expect(result).toEqual([...result].sort()); // already sorted
+    expect(new Set(result).size).toBe(result.length); // no duplicates
+  });
+});
+
+// ────────────────────────────────────────────────
+// getSkillTemplateDir
+// ────────────────────────────────────────────────
+describe('getSkillTemplateDir', () => {
+  it('should return correct domain for known skill', () => {
+    expect(getSkillTemplateDir('tdd-workflow', TEST_MANIFEST)).toBe('workflow');
+    expect(getSkillTemplateDir('frontend-patterns', TEST_MANIFEST)).toBe('frontend');
+    expect(getSkillTemplateDir('backend-patterns', TEST_MANIFEST)).toBe('backend');
+    expect(getSkillTemplateDir('postgres-patterns', TEST_MANIFEST)).toBe('database');
+    expect(getSkillTemplateDir('e2e-testing', TEST_MANIFEST)).toBe('testing');
+    expect(getSkillTemplateDir('docker-patterns', TEST_MANIFEST)).toBe('devops');
+    expect(getSkillTemplateDir('caveman', TEST_MANIFEST)).toBe('advanced');
+  });
+
+  it('should return workflow for unknown skill', () => {
+    expect(getSkillTemplateDir('nonexistent-skill', TEST_MANIFEST)).toBe('workflow');
+  });
+});
+
+// ────────────────────────────────────────────────
+// getRecommendedDomains
+// ────────────────────────────────────────────────
+describe('getRecommendedDomains', () => {
+  it('web project should recommend workflow + frontend + testing', () => {
+    const result = getRecommendedDomains('web', false, 'vibe-coder');
+    expect(result).toContain('workflow');
+    expect(result).toContain('frontend');
+    expect(result).toContain('testing');
+    expect(result).not.toContain('backend');
+    expect(result).not.toContain('database');
+  });
+
+  it('api project with db should recommend workflow + backend + database + testing', () => {
+    const result = getRecommendedDomains('api', true, 'vibe-coder');
+    expect(result).toContain('backend');
+    expect(result).toContain('database');
+    expect(result).toContain('testing');
+    expect(result).not.toContain('frontend');
+  });
+
+  it('fullstack with db should recommend all non-manual domains', () => {
+    const result = getRecommendedDomains('fullstack', true, 'vibe-coder');
+    expect(result).toContain('frontend');
+    expect(result).toContain('backend');
+    expect(result).toContain('database');
+    expect(result).toContain('testing');
+  });
+
+  it('developer level should include advanced', () => {
+    const vibeResult = getRecommendedDomains('web', false, 'vibe-coder');
+    const devResult = getRecommendedDomains('web', false, 'developer');
+    expect(vibeResult).not.toContain('advanced');
+    expect(devResult).toContain('advanced');
+  });
+
+  it('other project type should only have workflow + testing', () => {
+    const result = getRecommendedDomains('other', false, 'vibe-coder');
+    expect(result).toEqual(['workflow', 'testing']);
   });
 });

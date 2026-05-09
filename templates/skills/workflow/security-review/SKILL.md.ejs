@@ -1,0 +1,146 @@
+# Security Review — 提交前安全检查
+
+> 使用此 skill 时：在准备提交代码前，或者修改了涉及认证/授权/用户数据/支付/外部 API 调用的代码时。
+
+## 安全检查清单
+
+以下所有检查项必须在每次提交前执行：
+
+### 1. 密钥管理
+
+```
+[ ] 无硬编码密钥（API Key、密码、Token、JWT Secret）
+[ ] 无硬编码数据库连接字符串
+[ ] 无硬编码第三方服务凭据
+[ ] 配置文件中无真实凭据（只有占位符或环境变量引用）
+```
+
+### 2. 输入验证
+
+```
+[ ] 所有用户输入使用 schema 校验（长度/格式/类型/范围）
+[ ] 文件上传有类型/大小限制
+[ ] 批量操作有数量上限
+[ ] URL 参数/路径参数已校验
+```
+
+### 3. SQL / NoSQL 注入防护
+
+```
+[ ] 使用参数化查询或 ORM 内置防护
+[ ] 无字符串拼接 SQL 语句
+[ ] NoSQL 查询使用参数化（非原始字符串注入）
+```
+
+### 4. XSS 防护
+
+```
+[ ] 用户生成内容输出时已转义
+[ ] 富文本内容经 HTML Sanitizer 过滤
+[ ] CSP（Content Security Policy）已配置
+[ ] 无 `innerHTML` / `dangerouslySetInnerHTML` 等危险 API
+```
+
+### 5. CSRF 防护
+
+```
+[ ] 有状态修改操作（POST/PUT/DELETE）有 CSRF 保护
+[ ] SameSite Cookie 已设置
+[ ] API 使用 Token 认证时无需额外 CSRF（但需确认）
+```
+
+### 6. 认证与授权
+
+```
+[ ] 认证失败的响应不泄露用户是否存在
+[ ] 令牌有有效期和刷新机制
+[ ] 每次操作验证资源所有权（防止 IDOR）
+[ ] 未认证用户无法访问受保护资源
+[ ] 权限不足的用户得到 403 而非 401
+```
+
+### 7. 速率限制
+
+```
+[ ] 认证端点有登录尝试限制
+[ ] 公开 API 端点有速率限制
+[ ] 文件上传端点有额外限制
+```
+
+### 8. 错误消息与日志
+
+```
+[ ] 错误消息不泄露内部细节（堆栈、路径、SQL、配置）
+[ ] 日志中不记录密码、Token、信用卡等敏感数据
+[ ] 生产环境关闭调试模式/详细错误
+```
+
+## 常见漏洞修复模板
+
+### 修复硬编码密钥
+
+```text
+// ❌ 错误
+apiKey = "sk-xxxxxxxxxxxxxxxx"
+
+// ✅ 正确
+apiKey = env("API_KEY")
+if apiKey is empty → throw "API_KEY not configured"
+```
+
+### 修复 SQL 注入
+
+```text
+// ❌ 错误
+query = "SELECT * FROM users WHERE id = '" + userId + "'"
+
+// ✅ 正确
+query = "SELECT * FROM users WHERE id = $1"
+execute(query, [userId])
+```
+
+### 修复 IDOR（越权）
+
+```text
+// ❌ 错误 — 只检查资源存在，不检查所有权
+resource = db.find(resourceId)
+return resource
+
+// ✅ 正确 — 验证当前用户拥有该资源
+resource = db.find(resourceId)
+if resource.ownerId != currentUserId → throw 403
+return resource
+```
+
+### 安全错误响应
+
+```text
+// ❌ 错误 — 泄露内部信息
+response 500: { "error": "Cannot read property 'x' of null at /src/services/user.js:42" }
+
+// ✅ 正确 — 泛化错误
+response 500: { "error": "Internal server error" }
+// 日志中保留完整信息供调试
+```
+
+## 安全扫描命令
+
+```bash
+# 依赖漏洞扫描
+audit                            # 检查依赖中的已知漏洞
+
+# 密钥扫描（防止敏感信息提交）
+# 使用 pre-commit hook 或 CI 中的密钥扫描工具
+
+# 静态安全分析
+lint --security                  # 运行安全规则集
+```
+
+## 严重程度分级
+
+| 级别 | 定义 | 行动要求 |
+|------|------|---------|
+| CRITICAL | 可直接导致数据泄露/服务入侵 | 必须修复，阻断提交 |
+| HIGH | 在特定条件下可被利用 | 必须修复 |
+| MEDIUM | 增加攻击面 | 建议修复 |
+| LOW | 最佳实践偏离 | 记录待办 |

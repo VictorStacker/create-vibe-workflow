@@ -5,7 +5,13 @@ import ejs from 'ejs';
 import chalk from 'chalk';
 import type { UserConfig } from './questions.js';
 import { getClaudeMdTemplate, getSkillsRecommendPath } from './questions.js';
-import { appendCLAUDEmd as appendCLAUDEmdUtil, mergeSettingsJson } from './utils.js';
+import {
+  appendCLAUDEmd as appendCLAUDEmdUtil,
+  mergeSettingsJson,
+  resolveSelectedSkills,
+  getSkillTemplateDir,
+  loadSkillManifest,
+} from './utils.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const TEMPLATES_DIR = path.resolve(__dirname, '..', 'templates');
@@ -87,8 +93,6 @@ function mergeSettings(existingPath: string, newContent: string): string {
   return mergeSettingsJson(existing, newSettings);
 }
 
-// (appendCLAUDEmd 核心逻辑已移至 src/utils.ts 并导出为 appendCLAUDEmdUtil)
-// 这里保留文件 I/O 包装
 function appendCLAUDEmd(existingPath: string, newContent: string): string {
   if (!fs.existsSync(existingPath)) return newContent;
   const existing = fs.readFileSync(existingPath, 'utf-8');
@@ -109,6 +113,23 @@ export async function generate(config: UserConfig): Promise<FileResult[]> {
     backupExisting(targetDir);
   }
 
+  // 解析技能列表
+  let selectedSkills: string[] = [];
+  try {
+    const manifest = loadSkillManifest(TEMPLATES_DIR);
+    selectedSkills = resolveSelectedSkills(
+      {
+        projectType: config.projectType,
+        needsDb: config.needsDb,
+        userLevel: config.userLevel,
+        selectedDomains: config.selectedDomains,
+      },
+      manifest,
+    );
+  } catch {
+    selectedSkills = [];
+  }
+
   const vars = {
     PROJECT_NAME: config.projectName,
     TECH_STACK: config.techStack,
@@ -116,17 +137,30 @@ export async function generate(config: UserConfig): Promise<FileResult[]> {
     MODULES: config.modules.join(', '),
     LANGUAGE: config.language,
     GENERATED_AT: new Date().toISOString(),
+    PROJECT_TYPE: config.projectType,
+    NEEDS_DB: config.needsDb ? 'true' : 'false',
+    SELECTED_DOMAINS: config.selectedDomains,
+    SELECTED_SKILLS: selectedSkills,
+    SKILLS: selectedSkills.join(', '),
   };
 
   const manifestFiles: string[] = [];
 
-  // Rules
-  const ruleFiles = ['development-workflow.md', 'coding-style.md', 'git-workflow.md', 'security.md', 'testing.md', 'patterns.md'];
+  // ── Rules ──
+  const ruleFiles = [
+    'development-workflow.md', 'coding-style.md', 'git-workflow.md',
+    'security.md', 'testing.md', 'patterns.md',
+    'performance.md', 'hooks.md', 'memory.md',
+  ];
   if (config.modules.includes('agents')) ruleFiles.push('agents.md');
 
   console.log(chalk.dim('\n📁 生成规则文件...'));
   for (const file of ruleFiles) {
     const templatePath = path.join(TEMPLATES_DIR, 'rules', file);
+    if (!fs.existsSync(templatePath)) {
+      console.log(chalk.dim(`  ⏭ ${file} (模板不存在)`));
+      continue;
+    }
     try {
       const rendered = renderTemplate(templatePath, vars);
       const target = path.join(claudeDir, 'rules', file);
@@ -135,13 +169,12 @@ export async function generate(config: UserConfig): Promise<FileResult[]> {
       manifestFiles.push(target);
       console.log(chalk.dim(`  ✅ ${file}`));
     } catch (err) {
-      const status: FileResult = { path: file, status: 'error', error: (err as Error).message };
-      results.push(status);
+      results.push({ path: file, status: 'error', error: (err as Error).message });
       console.log(chalk.red(`  ❌ ${file} — ${(err as Error).message}`));
     }
   }
 
-  // Hooks
+  // ── Hooks ──
   console.log(chalk.dim('\n🔧 生成 Hook 脚本...'));
   const hookFiles = ['post-commit-check.js', 'check-deps.mjs'];
   for (const file of hookFiles) {
@@ -159,7 +192,109 @@ export async function generate(config: UserConfig): Promise<FileResult[]> {
     }
   }
 
-  // CLAUDE.md — 根据技术栈适配器选择模板
+  // ── Skills ──
+  if (selectedSkills.length > 0) {
+    console.log(chalk.dim(`\n🧠 生成技能文件（${selectedSkills.length} 个）...`));
+    let manifest: ReturnType<typeof loadSkillManifest> | null = null;
+    try { manifest = loadSkillManifest(TEMPLATES_DIR); } catch { /* skip */ }
+
+    const skillsTemplatesDir = path.join(TEMPLATES_DIR, 'skills');
+    for (const skillName of selectedSkills) {
+      const domainDir = manifest ? getSkillTemplateDir(skillName, manifest) : 'workflow';
+      const templatePath = path.join(skillsTemplatesDir, domainDir, skillName, 'SKILL.md.ejs');
+      if (!fs.existsSync(templatePath)) {
+        console.log(chalk.dim(`  ⏭ ${skillName}/SKILL.md (模板不存在)`));
+        continue;
+      }
+      try {
+        const rendered = renderTemplate(templatePath, vars);
+        const target = path.join(claudeDir, 'skills', skillName, 'SKILL.md');
+        writeFile(target, rendered);
+        results.push({ path: target, status: 'created' });
+        manifestFiles.push(target);
+        console.log(chalk.dim(`  ✅ ${skillName}/SKILL.md`));
+      } catch (err) {
+        results.push({ path: `skills/${skillName}`, status: 'error', error: (err as Error).message });
+        console.log(chalk.red(`  ❌ ${skillName} — ${(err as Error).message}`));
+      }
+    }
+  }
+
+  // ── Commands ──
+  {
+    const commandsRoot = path.join(TEMPLATES_DIR, 'commands');
+    if (fs.existsSync(commandsRoot)) {
+      console.log(chalk.dim('\n📋 生成命令文件...'));
+      const categories = fs.readdirSync(commandsRoot, { withFileTypes: true })
+        .filter((d) => d.isDirectory())
+        .map((d) => d.name);
+      for (const category of categories) {
+        const categoryDir = path.join(commandsRoot, category);
+        const files = fs.readdirSync(categoryDir).filter((f) => f.endsWith('.md.ejs'));
+        if (files.length === 0) continue;
+        for (const file of files) {
+          const templatePath = path.join(categoryDir, file);
+          try {
+            const rendered = renderTemplate(templatePath, vars);
+            const outName = file.replace(/\.ejs$/, '');
+            const target = path.join(claudeDir, 'commands', category, outName);
+            writeFile(target, rendered);
+            results.push({ path: target, status: 'created' });
+            manifestFiles.push(target);
+            console.log(chalk.dim(`  ✅ commands/${category}/${outName}`));
+          } catch (err) {
+            results.push({ path: `commands/${category}/${file}`, status: 'error', error: (err as Error).message });
+            console.log(chalk.red(`  ❌ commands/${category}/${file} — ${(err as Error).message}`));
+          }
+        }
+      }
+    }
+  }
+
+  // ── Memory ──
+  {
+    const memoryTemplatesDir = path.join(TEMPLATES_DIR, 'memory');
+    if (fs.existsSync(memoryTemplatesDir)) {
+      console.log(chalk.dim('\n📝 生成 Memory 文件...'));
+      const memoryFiles = [
+        { tpl: 'MEMORY.md.ejs', out: 'MEMORY.md' },
+        { tpl: 'dev-notes.md.ejs', out: 'dev-notes.md' },
+        { tpl: 'troubleshooting.md.ejs', out: 'troubleshooting.md' },
+      ];
+      for (const { tpl, out } of memoryFiles) {
+        const templatePath = path.join(memoryTemplatesDir, tpl);
+        if (!fs.existsSync(templatePath)) continue;
+        const target = path.join(claudeDir, 'memory', out);
+
+        // 合并模式下 memory 文件绝对不覆盖
+        if (hasExisting && !overwrite && fs.existsSync(target)) {
+          results.push({ path: target, status: 'skipped' });
+          console.log(chalk.dim(`  ⏭ memory/${out} (已存在，跳过不覆盖)`));
+          continue;
+        }
+
+        try {
+          const rendered = renderTemplate(templatePath, vars);
+          writeFile(target, rendered);
+          results.push({ path: target, status: 'created' });
+          manifestFiles.push(target);
+          console.log(chalk.dim(`  ✅ memory/${out}`));
+        } catch (err) {
+          results.push({ path: `memory/${out}`, status: 'error', error: (err as Error).message });
+          console.log(chalk.red(`  ❌ memory/${out} — ${(err as Error).message}`));
+        }
+      }
+
+      // .gitkeep
+      const gitkeepPath = path.join(claudeDir, 'memory', '.gitkeep');
+      if (!fs.existsSync(gitkeepPath)) {
+        writeFile(gitkeepPath, '');
+        manifestFiles.push(gitkeepPath);
+      }
+    }
+  }
+
+  // ── CLAUDE.md ──
   console.log(chalk.dim('\n📄 生成 CLAUDE.md...'));
   const claudeMdRelative = getClaudeMdTemplate(config.techStack);
   const claudeTemplate = path.join(TEMPLATES_DIR, 'claude-md', claudeMdRelative || 'CLAUDE.zh-CN.md');
@@ -176,7 +311,7 @@ export async function generate(config: UserConfig): Promise<FileResult[]> {
     console.log(chalk.red(`  ❌ CLAUDE.md — ${(err as Error).message}`));
   }
 
-  // Settings
+  // ── Settings ──
   console.log(chalk.dim('\n⚙️  生成配置文件...'));
   const settingsTemplate = path.join(TEMPLATES_DIR, 'settings', 'settings.template.json');
   try {
@@ -192,7 +327,7 @@ export async function generate(config: UserConfig): Promise<FileResult[]> {
     console.log(chalk.red(`  ❌ settings.json — ${(err as Error).message}`));
   }
 
-  // Skills recommend (根据技术栈适配器加载)
+  // ── Skills recommend (适配器) ──
   const skillsAdapter = getSkillsRecommendPath(config.techStack);
   if (skillsAdapter) {
     const skillsRecPath = path.resolve(__dirname, '..', 'adapters', skillsAdapter);
@@ -204,7 +339,21 @@ export async function generate(config: UserConfig): Promise<FileResult[]> {
     }
   }
 
-  // Generate manifest
+  // ── skills-lock.json ──
+  {
+    const lockTemplate = path.join(TEMPLATES_DIR, 'skills', 'skills-lock.template.json');
+    if (fs.existsSync(lockTemplate)) {
+      const target = path.join(claudeDir, 'skills-lock.json');
+      if (!hasExisting || overwrite || !fs.existsSync(target)) {
+        fs.copyFileSync(lockTemplate, target);
+        manifestFiles.push(target);
+      } else {
+        console.log(chalk.dim('  ⏭ skills-lock.json (已存在，保留自定义配置)'));
+      }
+    }
+  }
+
+  // ── Manifest ──
   ensureDir(claudeDir);
   fs.writeFileSync(
     path.join(claudeDir, '.generated-manifest.json'),
@@ -237,17 +386,20 @@ const WORKFLOW_PATTERNS = [
   '.claude/rules/testing.md',
   '.claude/rules/patterns.md',
   '.claude/rules/agents.md',
+  '.claude/rules/performance.md',
+  '.claude/rules/hooks.md',
+  '.claude/rules/memory.md',
   '.claude/hooks/post-commit-check.js',
   '.claude/hooks/check-deps.mjs',
   '.claude/settings.json',
   '.claude/skills.recommend.json',
+  '.claude/skills-lock.json',
+  '.claude/skills',
+  '.claude/commands',
+  '.claude/memory',
   '.claude/.generated-manifest.json',
 ];
 
-/**
- * Fallback 清理：当 manifest 不存在或损坏时，
- * 基于已知的文件模式尝试清理工作流生成的文件。
- */
 function fallbackCleanup(targetDir: string): void {
   const removed: string[] = [];
   const skipped: string[] = [];
@@ -264,7 +416,6 @@ function fallbackCleanup(targetDir: string): void {
     }
   }
 
-  // 尝试清理 CLAUDE.md 中的 workflow 标记区域
   const claudeMdPath = path.join(targetDir, 'CLAUDE.md');
   if (fs.existsSync(claudeMdPath)) {
     try {
@@ -274,7 +425,6 @@ function fallbackCleanup(targetDir: string): void {
       if (content.includes(markerStart) && content.includes(markerEnd)) {
         const before = content.substring(0, content.indexOf(markerStart));
         const after = content.substring(content.indexOf(markerEnd) + markerEnd.length);
-        // 如果清理后内容为空或只有空白，删除文件；否则写回
         const cleaned = (before + after).trim();
         if (cleaned.length === 0) {
           fs.unlinkSync(claudeMdPath);
@@ -314,7 +464,6 @@ export async function uninstall(targetDir: string): Promise<void> {
     return;
   }
 
-  // 尝试解析 manifest，如果损坏则 fallback
   let manifest: { files?: string[] };
   try {
     manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
@@ -328,7 +477,6 @@ export async function uninstall(targetDir: string): Promise<void> {
     return;
   }
 
-  // 正常卸载流程
   const backupDir = path.join(targetDir, '.claude', '.backup');
   ensureDir(backupDir);
 

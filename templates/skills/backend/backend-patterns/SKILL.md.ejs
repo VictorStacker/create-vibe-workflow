@@ -1,0 +1,263 @@
+# Backend Patterns — 后端开发模式
+
+> 使用此 skill 时：设计 API、实现业务逻辑、组织服务层代码时。
+
+## API 设计模式
+
+### RESTful 命名规范
+
+```text
+资源命名（名词复数）：
+  GET    /resources          → 列表
+  GET    /resources/:id      → 详情
+  POST   /resources          → 创建
+  PUT    /resources/:id      → 全量更新
+  PATCH  /resources/:id      → 部分更新
+  DELETE /resources/:id      → 删除
+
+子资源：
+  GET    /resources/:id/sub-resources
+  POST   /resources/:id/sub-resources
+
+动作（非 CRUD）：
+  POST   /resources/:id/{action}    → 如 archive、approve
+
+筛选/排序/分页（查询参数）：
+  GET /resources?status=active&sort=-createdAt&page=1&limit=20
+```
+
+### 统一响应格式
+
+```text
+成功响应：
+{
+  "success": true,
+  "data": { ... },
+  "error": null,
+  "meta": {                     // 分页时
+    "total": 100,
+    "page": 1,
+    "limit": 20
+  }
+}
+
+错误响应：
+{
+  "success": false,
+  "data": null,
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "用户友好的错误描述",
+    "details": [                // 验证错误时包含字段级错误
+      { "field": "email", "message": "邮箱格式不正确" }
+    ]
+  }
+}
+```
+
+### HTTP 状态码使用
+
+```text
+200 — 成功（GET、PATCH）
+201 — 创建成功（POST）
+204 — 无内容（DELETE）
+400 — 请求参数错误（验证失败）
+401 — 未认证
+403 — 无权限
+404 — 资源不存在
+409 — 冲突（如重复创建）
+422 — 业务逻辑错误
+429 — 请求过频（限流）
+500 — 服务器内部错误
+```
+
+## 仓储模式（Repository Pattern）
+
+```text
+作用：将数据访问逻辑与业务逻辑分离
+
+结构：
+  [接口层] I{Entity}Repository
+    - findAll(filter, sort, page)
+    - findById(id)
+    - create(data)
+    - update(id, data)
+    - delete(id)
+
+  [实现层] {Entity}Repository
+    - 具体的数据访问实现（数据库/API/文件）
+    - 接口与实现一一对应
+
+  [业务层] {Entity}Service
+    - 只依赖接口，不依赖具体实现
+    - 测试时替换为 mock 实现
+
+规则：
+  - 仓储方法名用领域语言（如 `findActiveUsers` 而非 `findByStatus`）
+  - 仓储返回领域对象，不返回数据行
+  - 业务层不拼 SQL / 查询语句
+```
+
+## 服务层模式（Service Layer）
+
+```text
+作用：编排业务逻辑，协调多个仓储和外部服务
+
+职责：
+  - 业务规则验证
+  - 事务管理（跨仓储操作）
+  - 外部服务调用编排
+  - 事件发布/消息发送
+  - 缓存管理
+
+不做的：
+  - 不处理 HTTP 请求/响应
+  - 不直接暴露给外部
+
+典型结构：
+  Service {
+    constructor(repositories, services, events) {
+      // 依赖注入
+    }
+
+    async create(input) {
+      // 1. 校验业务规则
+      // 2. 写入数据库（可跨多个仓储）
+      // 3. 发送事件
+      // 4. 返回结果
+    }
+  }
+```
+
+## 中间件模式（Middleware Pattern）
+
+```text
+请求处理管道：
+  Request → [Middleware 1] → [Middleware 2] → ... → [Handler]
+
+常见中间件（按顺序）：
+  1. 请求日志（Request Logging）
+  2. 安全头（Security Headers）
+  3. CORS
+  4. 请求体解析（Body Parser）
+  5. 认证（Authentication）
+  6. 授权（Authorization）
+  7. 限流（Rate Limiting）
+  8. 请求验证（Request Validation）
+  9. 响应转换（Response Transform）
+
+中间件规则：
+  - 每个中间件只做一件事
+  - 可配置（通过工厂函数）
+  - 执行完毕后调用 next()
+  - 错误中间件四个参数（err, req, res, next）
+```
+
+## 错误处理模式
+
+```text
+统一错误层次：
+
+  基类 AppError
+    ├── ValidationError      — 输入验证失败
+    ├── AuthenticationError  — 认证失败（401）
+    ├── AuthorizationError   — 权限不足（403）
+    ├── NotFoundError        — 资源不存在（404）
+    ├── ConflictError        — 冲突（409）
+    └── InternalError        — 内部错误（500）
+
+全局错误处理中间件：
+  try {
+    await handler(req, res)
+  } catch (error) {
+    if (error instanceof AppError) {
+      // 已知错误 → 返回对应的状态码和消息
+    } else {
+      // 未知错误 → 记录日志，返回 500
+    }
+  }
+```
+
+## 认证与授权模式
+
+### JWT 认证流程
+
+```text
+登录：
+  1. 验证凭据（用户名/密码等）
+  2. 生成 Access Token（短期，15-60 分钟）
+  3. 生成 Refresh Token（长期，7-30 天）
+  4. 返回双 Token
+
+验证：
+  1. 从请求头提取 Token（Authorization: Bearer <token>）
+  2. 验证签名和过期时间
+  3. 提取用户信息
+  4. 注入请求上下文
+
+刷新：
+  1. 验证 Refresh Token
+  2. 生成新的 Access Token
+  3. 可选：轮换 Refresh Token
+```
+
+### RBAC 权限模型
+
+```text
+角色 → 权限 → 资源
+
+结构：
+  User → Role → Permission → Resource:Action
+
+示例：
+  "管理员" → "user:read", "user:write" → "用户模块"
+
+检查流程：
+  1. 获取用户角色
+  2. 获取角色关联的权限列表
+  3. 检查当前请求的 {资源:动作} 是否在权限列表中
+  4. 通过/拒绝
+```
+
+## 缓存模式
+
+```text
+Cache-Aside（旁路缓存）：
+  读：先查缓存 → 命中返回 / 未命中查 DB → 写入缓存 → 返回
+  写：先写 DB → 使缓存失效 / 更新缓存
+
+缓存失效策略：
+  - 基于时间（TTL）
+  - 基于事件（数据变更时主动失效）
+  - 基于版本（数据带版本号，版本变化时重新加载）
+
+什么该缓存：
+  - 频繁读取不频繁修改的数据
+  - 计算开销大的结果
+  - 聚合/统计结果
+
+什么不该缓存：
+  - 实时性要求极高的数据
+  - 频繁变化的数据（缓存命中率低）
+  - 用户敏感的私有数据（除非小心处理）
+```
+
+## 后台任务模式
+
+```text
+适用场景：
+  耗时操作（文件处理、邮件发送）
+  定时任务（报表生成、数据清理）
+  异步消息（事件驱动处理）
+
+方案：
+  - 轻量级：内存队列 + Worker
+  - 生产级：消息队列（如 RabbitMQ、Redis Streams）
+  - 定时任务：Cron/Scheduler
+
+设计要点：
+  - 任务可重试（幂等性）
+  - 失败有死信队列
+  - 有监控和告警
+  - 不影响主请求路径
+```

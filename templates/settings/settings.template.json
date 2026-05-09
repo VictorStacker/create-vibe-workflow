@@ -9,6 +9,22 @@
   },
   "workflow": {
     "version": "9-step-v1",
-    "language": "<%= LANGUAGE %>"
+    "language": "<%= LANGUAGE %>",
+    "projectType": "<%= PROJECT_TYPE %>",
+    "installedDomains": <%- JSON.stringify(SELECTED_DOMAINS) %>,
+    "installedSkills": <%- JSON.stringify(SELECTED_SKILLS) %>
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .claude/hooks/post-commit-check.js"
+          }
+        ]
+      }
+    ]
   }
 }

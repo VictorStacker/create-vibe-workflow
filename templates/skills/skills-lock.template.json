@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "skills": {},
+  "_comment": "在此记录手动安装的外部技能。格式参考 _example",
+  "_example": {
+    "agent-browser": {
+      "source": "vercel-labs/agent-browser",
+      "sourceType": "github",
+      "computedHash": ""
+    }
+  }
+}

@@ -1,0 +1,143 @@
+# Coding Standards — 编码规范
+
+> 使用此 skill 时：在生成代码或审查代码时，应用以下标准。
+
+## 不可变性（最高优先级）
+
+**永远创建新对象，绝不修改已有对象。**
+
+```text
+// ❌ 错误 — 直接修改原对象
+updateUser(user, "name", "newName") {
+    user.name = "newName"    // 改变了原对象
+    return user
+}
+
+// ✅ 正确 — 返回新副本
+updateUser(user, "name", "newName") {
+    return { ...user, name: "newName" }
+}
+```
+
+为什么？
+- 无副作用，调用方不会被意外影响
+- 调试更容易（值不会"神秘改变"）
+- 并发安全（多个操作可安全共享数据）
+
+## 文件组织
+
+```
+【原则】多小文件 > 少大文件
+- 高内聚、低耦合
+- 每个文件 200-400 行，上限 800 行
+- 按功能/领域组织，不按类型组织
+```
+
+### 典型目录结构
+
+```text
+src/
+├── modules/
+│   └── {module-name}/
+│       ├── {module}.{ext}             # 模块入口
+│       ├── {module}.controller.{ext}  # 路由/请求处理
+│       ├── {module}.service.{ext}     # 业务逻辑
+│       ├── {module}.schema.{ext}      # 校验 schema
+│       ├── {module}.types.{ext}       # 类型定义
+│       └── {module}.test.{ext}        # 测试
+├── shared/
+│   ├── utils/                         # 通用工具函数
+│   ├── types/                         # 共享类型
+│   └── constants/                     # 常量
+└── config/                            # 配置
+```
+
+## 命名规范
+
+| 类别 | 规范 | 示例 |
+|------|------|------|
+| 文件名 | kebab-case | `user-service.{ext}` |
+| 目录名 | kebab-case | `user-module/` |
+| 变量/函数 | camelCase | `getUserById` |
+| 类/接口/类型 | PascalCase | `UserService` |
+| 常量 | UPPER_SNAKE_CASE | `MAX_RETRY_COUNT` |
+| 枚举值 | UPPER_SNAKE_CASE | `Role.ADMIN` |
+| 布尔前缀 | is/has/can/should | `isActive`, `hasPermission` |
+| 私有成员 | 下划线前缀 | `_internalMethod` |
+
+## 错误处理
+
+```text
+【三条规则】
+1. 所有可能失败的 IO 操作必须用 try-catch 包裹
+2. 错误必须包含有用信息（上下文 + 原因）
+3. 边界层（API/UI）必须将错误转为用户友好的形式
+```
+
+### 错误分层
+
+```text
+系统边界层（API/Controller 等）
+  └─ 捕获所有异常，转为错误响应格式
+      └─ 业务逻辑层（Service）
+          └─ 抛出具名业务错误（ValidationError / NotFoundError 等）
+              └─ 数据访问层（Repository/DAO）
+                  └─ 包装底层错误为数据访问错误
+```
+
+## 输入验证
+
+```text
+【所有系统入口点必须验证输入】
+- API 端点参数
+- 表单提交数据
+- 文件导入内容
+- 外部 API 回调数据
+- 消息队列消息
+```
+
+## 代码质量自查清单
+
+- [ ] 命名清楚表达意图（好命名不需要注释解释）
+- [ ] 函数不超过 50 行（超过则提取子函数）
+- [ ] 文件不超过 800 行
+- [ ] 嵌套不超过 4 层（超过则提前 return 或提取函数）
+- [ ] 没有死代码（未使用的变量/函数/导入）
+- [ ] 没有循环依赖
+- [ ] 没有魔法数字/字符串（使用命名常量）
+- [ ] 错误路径已处理
+- [ ] 边界情况已覆盖（空值、零值、超长值）
+- [ ] 日志包含足够的上下文信息
+
+## 日志规范
+
+```text
+【禁止】在生产代码中使用 console.log / print / println
+
+级别使用：
+  error   — 需要人工介入的异常（不可恢复）
+  warn    — 可恢复但需要注意的情况（重试成功、降级）
+  info    — 关键业务流程节点（用户注册、下单）
+  debug   — 调试信息（仅在开发/调试环境输出）
+
+每条日志应包含：
+  1. 操作标识（操作名、请求 ID）
+  2. 上下文数据（用户 ID、资源 ID 等，不含敏感信息）
+  3. 耗时/状态
+```
+
+## 注释规范
+
+```text
+// 文档注释 — 公开 API 必须有
+/** 描述函数行为及返回值 */
+
+// 实现注释 — 解释"为什么"非"是什么"
+// 使用轮询而非 WebSocket 因为客户端环境不支持长连接
+
+// TODO 注释 — 必须有对应 Issue 跟踪
+// TODO(#1234): 这个查询需要加索引
+
+// 不需要的注释 — 代码本身已表达意图时
+// ❌ 遍历用户列表 ← 这行代码已经说明了一切
+```

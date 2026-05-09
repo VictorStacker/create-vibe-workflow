@@ -16,7 +16,6 @@ async function healthCheck(targetDir: string): Promise<void> {
   const claudeDir = path.join(targetDir, '.claude');
   const manifestPath = path.join(claudeDir, '.generated-manifest.json');
 
-  // 1. 检查 .claude/ 目录是否存在
   if (!fs.existsSync(claudeDir)) {
     console.log(chalk.yellow('  状态: 未安装工作流'));
     console.log(chalk.dim('  运行 npx create-vibe-workflow 开始安装\n'));
@@ -33,10 +32,11 @@ async function healthCheck(targetDir: string): Promise<void> {
 
   const results: { name: string; status: 'ok' | 'missing' | 'outdated'; detail?: string }[] = [];
 
-  // 2. 检查规则文件
+  // 1. 检查规则文件（含新增）
   const expectedRules = [
     'development-workflow.md', 'coding-style.md', 'git-workflow.md',
     'security.md', 'testing.md', 'patterns.md',
+    'performance.md', 'hooks.md', 'memory.md',
   ];
   for (const rule of expectedRules) {
     const p = path.join(claudeDir, 'rules', rule);
@@ -46,7 +46,7 @@ async function healthCheck(targetDir: string): Promise<void> {
     });
   }
 
-  // 3. 检查 hooks
+  // 2. 检查 hooks
   const expectedHooks = ['post-commit-check.js', 'check-deps.mjs'];
   for (const hook of expectedHooks) {
     const p = path.join(claudeDir, 'hooks', hook);
@@ -56,33 +56,77 @@ async function healthCheck(targetDir: string): Promise<void> {
     });
   }
 
-  // 4. CLAUDE.md
+  // 3. CLAUDE.md
   const claudeMdPath = path.join(targetDir, 'CLAUDE.md');
   results.push({
     name: 'CLAUDE.md',
     status: fs.existsSync(claudeMdPath) ? 'ok' : 'missing',
   });
 
-  // 5. settings.json
+  // 4. settings.json
   const settingsPath = path.join(claudeDir, 'settings.json');
   results.push({
     name: '.claude/settings.json',
     status: fs.existsSync(settingsPath) ? 'ok' : 'missing',
   });
 
-  // 6. 外部依赖检查
-  const skillsDir = join(homedir(), '.claude', 'skills');
+  // 5. Skills 目录
+  const skillsDir = path.join(claudeDir, 'skills');
+  if (fs.existsSync(skillsDir) && fs.readdirSync(skillsDir).length > 0) {
+    results.push({ name: '.claude/skills/', status: 'ok' });
+  } else {
+    results.push({ name: '.claude/skills/', status: 'missing', detail: '(未安装或为空)' });
+  }
+
+  // 6. Commands 目录（检查所有子目录）
+  const commandsRootDir = path.join(claudeDir, 'commands');
+  if (fs.existsSync(commandsRootDir)) {
+    const cmdCategories = fs.readdirSync(commandsRootDir, { withFileTypes: true })
+      .filter(d => d.isDirectory()).map(d => d.name);
+    if (cmdCategories.length > 0) {
+      for (const cat of cmdCategories) {
+        const catDir = path.join(commandsRootDir, cat);
+        const cmdFiles = fs.readdirSync(catDir).filter(f => f.endsWith('.md'));
+        results.push({
+          name: `.claude/commands/${cat}/`,
+          status: cmdFiles.length > 0 ? 'ok' : 'missing',
+          detail: cmdFiles.length > 0 ? `(${cmdFiles.length} 个命令)` : '(目录为空)',
+        });
+      }
+    } else {
+      results.push({ name: '.claude/commands/', status: 'missing', detail: '(未安装)' });
+    }
+  } else {
+    results.push({ name: '.claude/commands/', status: 'missing', detail: '(未安装)' });
+  }
+
+  // 7. Memory 目录
+  const memoryDir = path.join(claudeDir, 'memory');
+  if (fs.existsSync(path.join(memoryDir, 'MEMORY.md'))) {
+    results.push({ name: '.claude/memory/MEMORY.md', status: 'ok' });
+  } else {
+    results.push({ name: '.claude/memory/MEMORY.md', status: 'missing' });
+  }
+
+  // 8. skills-lock.json
+  const skillsLockPath = path.join(claudeDir, 'skills-lock.json');
+  results.push({
+    name: '.claude/skills-lock.json',
+    status: fs.existsSync(skillsLockPath) ? 'ok' : 'missing',
+  });
+
+  // 9. 外部依赖检查
+  const globalSkillsDir = join(homedir(), '.claude', 'skills');
   const deps = [
     { name: 'gstack', dir: 'gstack' },
     { name: 'superpowers', dir: 'superpowers' },
     { name: 'openspec (可选)', dir: 'openspec', optional: true },
-    { name: 'everything-claude-code (可选)', dir: 'everything-claude-code', optional: true },
   ];
   for (const dep of deps as Array<{ name: string; dir: string; optional?: boolean }>) {
-    const exists = fs.existsSync(join(skillsDir, dep.dir));
+    const exists = fs.existsSync(join(globalSkillsDir, dep.dir));
     results.push({
       name: `依赖: ${dep.name}`,
-      status: exists ? 'ok' : dep.optional ? 'ok' : 'missing', // 可选缺失不算 error
+      status: exists ? 'ok' : dep.optional ? 'ok' : 'missing',
       detail: exists ? undefined : dep.optional ? '(未安装，可选)' : '(未安装)',
     });
   }
@@ -98,7 +142,6 @@ async function healthCheck(targetDir: string): Promise<void> {
     console.log(`  ${icon} ${r.name}${detail}`);
   }
 
-  // 版本信息
   if (manifest) {
     console.log(chalk.white.bold('\n  安装信息：\n'));
     console.log(`  ${chalk.dim('生成工具:')}: ${(manifest.generatedBy as string) ?? 'unknown'}`);
@@ -109,7 +152,6 @@ async function healthCheck(targetDir: string): Promise<void> {
     }
   }
 
-  // 总结
   console.log(chalk.white('\n  ───────────────────────────────────'));
   if (missingCount === 0) {
     console.log(chalk.green(`  ✅ 全部正常 (${okCount}/${results.length})`));
@@ -123,12 +165,12 @@ async function healthCheck(targetDir: string): Promise<void> {
 }
 
 function join(...parts: string[]): string {
-  return parts.join(path.sep); // Windows 兼容
+  return parts.join(path.sep);
 }
 
 async function main() {
   console.log(chalk.cyan.bold('\n🚀 Create Vibe Workflow\n'));
-  console.log(chalk.dim('面向非专业编程人员的 Claude Code 开发工作流\n'));
+  console.log(chalk.dim('面向非专业编程人员的 Claude Code 开发工作流 — 完整技能包\n'));
 
   const args = process.argv.slice(2);
   const isUninstall = args.includes('--uninstall');
@@ -155,10 +197,13 @@ async function main() {
 
     console.log(chalk.green.bold('\n✅ 安装完成！\n'));
     console.log(chalk.dim('已生成以下内容：'));
-    console.log(chalk.white('  📁 .claude/rules/     — 开发工作流规则'));
-    console.log(chalk.white('  📁 .claude/hooks/     — 自动化检查脚本'));
-    console.log(chalk.white('  📄 CLAUDE.md          — 项目 AI 协作配置'));
-    console.log(chalk.white('  ⚙️  .claude/settings.json — 依赖声明'));
+    console.log(chalk.white('  📁 .claude/rules/      — 9 个开发工作流规则'));
+    console.log(chalk.white('  📁 .claude/skills/     — 项目领域技能包'));
+    console.log(chalk.white('  📁 .claude/commands/   — 工作流命令（propose/apply/archive/explore）'));
+    console.log(chalk.white('  📁 .claude/memory/     — 项目记忆系统'));
+    console.log(chalk.white('  📁 .claude/hooks/      — 自动化检查脚本'));
+    console.log(chalk.white('  📄 CLAUDE.md           — 项目 AI 协作配置'));
+    console.log(chalk.white('  ⚙️  .claude/settings.json — 工作流配置'));
     console.log();
     console.log(chalk.yellow('下一步：重启 Claude Code 即可使用新的工作流'));
     console.log(chalk.dim('如果尚未安装依赖组件（gstack / superpowers），'));

@@ -1,0 +1,59 @@
+{
+  "version": 1,
+  "domains": {
+    "workflow": {
+      "always": true,
+      "label": "工作流核心",
+      "desc": "开发流程强制执行",
+      "skills": [
+        "tdd-workflow",
+        "verification-loop",
+        "security-review",
+        "coding-standards",
+        "search-first",
+        "strategic-compact"
+      ]
+    },
+    "frontend": {
+      "projectTypes": ["web", "fullstack"],
+      "label": "前端开发",
+      "desc": "组件/状态/性能模式",
+      "skills": ["frontend-patterns"]
+    },
+    "backend": {
+      "projectTypes": ["api", "fullstack"],
+      "label": "后端开发",
+      "desc": "API/仓储/服务层模式",
+      "skills": ["backend-patterns"]
+    },
+    "database": {
+      "needsDb": true,
+      "label": "数据库",
+      "desc": "索引/迁移/查询优化",
+      "skills": ["postgres-patterns", "database-migrations"]
+    },
+    "testing": {
+      "projectTypes": ["web", "api", "fullstack"],
+      "label": "测试",
+      "desc": "E2E 自动化测试",
+      "skills": ["e2e-testing"]
+    },
+    "devops": {
+      "manual": true,
+      "label": "DevOps",
+      "desc": "Docker/CI/CD/部署",
+      "skills": ["docker-patterns", "deployment-patterns"]
+    },
+    "advanced": {
+      "userLevel": "developer",
+      "label": "进阶技能",
+      "desc": "诊断/架构审计/精简沟通",
+      "skills": [
+        "caveman",
+        "diagnose",
+        "improve-codebase-architecture",
+        "grill-with-docs"
+      ]
+    }
+  }
+}

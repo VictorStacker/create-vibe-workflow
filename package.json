@@ -1,7 +1,7 @@
 {
   "name": "create-vibe-workflow",
-  "version": "0.1.0",
-  "description": "一键安装 Claude Code 开发工作流 — 面向非专业编程人员的 Vibe Coding 编排插件",
+  "version": "0.2.0",
+  "description": "一键安装 Claude Code 完整工作流 — 16 skills + 12 commands + 记忆系统 + 10 规则，面向非专业编程人员",
   "type": "module",
   "keywords": [
     "claude-code",

@@ -359,7 +359,7 @@ export async function generate(config: UserConfig): Promise<FileResult[]> {
     path.join(claudeDir, '.generated-manifest.json'),
     JSON.stringify(
       {
-        generatedBy: 'create-vibe-workflow@0.1.0',
+        generatedBy: 'create-vibe-workflow@0.2.0',
         generatedAt: new Date().toISOString(),
         files: manifestFiles,
       },

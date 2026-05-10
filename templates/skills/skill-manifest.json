@@ -11,7 +11,8 @@
         "security-review",
         "coding-standards",
         "search-first",
-        "strategic-compact"
+        "strategic-compact",
+        "todolist-management"
       ]
     },
     "frontend": {

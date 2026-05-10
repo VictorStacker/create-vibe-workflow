@@ -1,169 +1,141 @@
-# 开发工作流（9 步完整流程）
+# 开发工作流（9 层架构）
 
-> 每个环节都必须执行（除非标注了跳过条件）。
-> **完成标志 = 该环节产出的可验证产物**，没有产物 = 没做完。
+> 每层都有明确的负责工具，不重叠、不冲突。
+> **superpowers 管思考，gstack 管执行，本工具管衔接。**
 
-## 完整链路（含命令对应）
-
-```
-① 需求澄清  📋 /office-hours → /opsx:propose → /brainstorm
-② 计划拆分  📐 /plan
-③ 研究复用  🔍 search-first skill
-④ TodoList   📝 手写 todolist.md
-⑤ TDD开发   🧪 /tdd → 完成时 /verify
-⑥ 代码审查  🔎 /review
-⑦ 安全审查  🛡️ /cso
-⑧ 文档反写  📄 每 commit 后检查 (post-commit hook)
-⑨ 提交归档  🚀 /ship → /opsx:archive
-```
-
-## 命令速查
-
-| 步骤 | 命令 | 用途 | 来源 |
-|------|------|------|------|
-| ①-a | `/office-hours` | 需求验证：值不值得做、最小切口 | gstack |
-| ①-b | `/opsx:propose` | 需求规格化：proposal + design + tasks | OpenSpec |
-| ①-c | `/brainstorm` | 方案探索：多方案对比、设计文档 | Superpowers |
-| ② | `/plan` | 计划拆分：P0/P1 子任务、写入 todolist.md | — |
-| ③ | (search-first skill) | 研究复用：GitHub/npm/Context7 搜索 | — |
-| ④ | (手动) | TodoList 编写 | — |
-| ⑤-a | `/tdd` | TDD 执行：RED→GREEN→REFACTOR | Superpowers |
-| ⑤-b | `/verify` | 完成前验证：编译/测试/lint/安全扫描/diff | Superpowers |
-| ⑥ | `/review` | 代码审查：SQL/信任边界/副作用/错误处理 | gstack |
-| ⑦ | `/cso` | 安全审查：密钥/供应链/CI/CD/OWASP/STRIDE | gstack |
-| ⑧ | (post-commit hook) | 文档反写提醒 | — |
-| ⑨-a | `/ship` | 发布：merge→test→review→version→PR | gstack |
-| ⑨-b | `/opsx:archive` | 归档：变更移至 archive/ | OpenSpec |
-
-> 命令是独立的 markdown 文件，位于 `.claude/commands/` 目录，重启 Claude Code 后即可使用。
-
-## 开发前必读文档
-
-| 顺序 | 文档 | 提取什么 |
-|------|------|----------|
-| 1 | `docs/PRD.md` | 用户故事 + 验收标准 + P0/P1 划分 |
-| 2 | `docs/database-schema.md` | 表结构 + FK + 枚举 + 约束（有数据库时） |
-| 3 | `docs/api-design.md` | 端点 + 请求/响应格式 + 权限（有 API 时） |
-| 4 | `docs/security.md` | 权限矩阵（有认证时） |
-| 5 | `docs/ui-ux-spec.md` | 页面线框图 + 组件规范（有前端时） |
-| 6 | 相邻已完成模块代码 | 复用实现模式 |
-
-缺少信息？**先补设计文档，再写代码。**
-
----
-
-## 各环节
-
-### ① 需求澄清
+## 四工具分工
 
 ```
-/office-hours → 验证需求 → /opsx:propose → 规格化 → /brainstorm → 方案设计
+superpowers（大脑）    gstack（手脚）     本工具（衔接）
+─────────────────    ───────────────    ─────────────
+brainstorming         /office-hours     /opsx:propose
+writing-plans         /browse + /qa     /opsx:explore
+TDD + subagent-dev    /review + /cso    /opsx:archive
+verification          /ship             todolist skill
+systematic-debugging  /context-save     rules + memory
+                       /careful /guard   hooks + 路由表
 ```
 
-- **动作**: 先验证需求合理性（/office-hours），再结构化规格（/opsx:propose），最后设计技术方案（/brainstorm）
-- **新功能必须走完整三步**：验证 → 规格 → 方案
-- **/office-hours**: 用六个强制性问题验证需求真伪——用户现在怎么解决的？痛点有多深？最小切口是什么？
-- **/opsx:propose**: 产出 proposal.md（做什么+为什么）、design.md（怎么做）、tasks.md（任务清单）
-- **/brainstorm**: 探索 2-3 种方案、选最佳路径、写设计文档
-- ✅ **完成标志**: 设计文档已提交 + 明确了做什么/不做什么/P0P1 划分
-- **跳过条件**: 纯技术任务（重构、升级依赖等），可直接从 /plan 开始
-
-### ② 计划拆分
+## 9 层完整链路
 
 ```
-/plan → todolist.md
+层1: 需求验证  → gstack /office-hours         "值不值得做？"
+层2: 需求规格  → /opsx:propose                "做什么？"（人话，能审）
+层3: 方案设计  → superpowers brainstorming    "怎么实现？"（方案对比）
+层4: 计划拆分  → superpowers writing-plans    "拆成几步？"
+层5: 进度追踪  → todolist-management skill    "做到哪了？断了能接上"
+层6: 编码测试  → superpowers TDD + subagent   "实际干活"
+层7: 浏览器验证 → gstack /browse + /qa        "看到真的页面"
+层8: 审查安全  → gstack /review + /cso        "代码对不对？安全吗？"
+层9: 发布归档  → gstack /ship → /opsx:archive "上线 + 记录"
 ```
 
-- **动作**: 将设计文档拆分为可独立提交的子任务（每个 50-300 行）
-- **P0 优先策略**: 新模块只先实现 P0，P1 完整列出放"后续"区
-- **/plan** 命令自动生成 todolist.md，每个子任务对应一个独立 commit
-- ✅ **完成标志**: todolist.md 已更新，每个子任务对应一个 commit
-- **跳过条件**: 单文件小修改（<50 行）
+## 路由裁决表
 
-### ③ 研究复用
-- **动作**: GitHub code search → npm → 项目内相邻模块代码
-- **search-first skill** 提供结构化搜索流程：并行搜索 → 评估（复用/扩展/组合/自建）→ 决定
-- ✅ **完成标志**: 确认了实现模式（复用现有 or 新写）
-- **跳过条件**: 已有明确模式可复用
+AI 遇到以下任务时，严格走指定工具，不得随机匹配：
 
-### ④ TodoList 编写
-- **动作**: 将子任务写入 `todolist.md`（若 /plan 已生成则确认）
-- **粒度**: 一个子任务 = 一个可独立 commit 的变更
-- ✅ **完成标志**: `todolist.md` 已更新，包含所有 P0 + P1 任务
-- **不可跳过**
+| 任务 | 默认工具 | 备选 |
+|------|---------|------|
+| 验证需求/探讨想法 | `gstack /office-hours` | `/opsx:explore` |
+| 把需求写成规格 | `/opsx:propose` | — |
+| 方案设计/头脑风暴 | `superpowers brainstorming` | — |
+| 写实施计划 | `superpowers writing-plans` | — |
+| 生成/更新 todolist | `todolist-management` skill（自动） | — |
+| 写代码 | `superpowers test-driven-development` | `subagent-driven-development` |
+| 调试 bug | `superpowers systematic-debugging` | `/browse`（看真实页面） |
+| 浏览器操作/QA | `gstack /browse` / `/qa` | — |
+| 代码审查 | `gstack /review` | — |
+| 安全审查 | `gstack /cso` | — |
+| 完成前自检 | `superpowers verification-before-completion` | — |
+| 收尾分支 | `superpowers finishing-a-development-branch` | — |
+| 发布 | `gstack /ship` | — |
+| 归档 | `/opsx:archive` | — |
+| 保存进度 | `gstack /context-save` | — |
+| 恢复进度 | `gstack /context-restore` + 读 `todolist.md` | — |
+| 危险操作防护 | `gstack /careful` / `/guard` | — |
 
-### ⑤ TDD 开发
+## 各层详解
 
-```
-/tdd (循环) → 所有任务完成 → /verify (一次性)
-```
+### 层1: 需求验证 — gstack /office-hours
 
-- **动作**: RED → GREEN → REFACTOR，覆盖率 ≥80%
-- **/tdd** 命令强制执行 TDD 纪律：先写失败测试 → 最简实现 → 重构
-- **按任务清单逐项实现**，每完成一项标记 done
-- **所有 P0 任务完成后**，运行 `/verify`：编译→类型检查→Lint→测试→安全扫描→Diff 审查
-- ✅ **完成标志**: /verify 全部通过 + 覆盖率 ≥80%
-- **不可跳过**
-> 完整 TDD 工作流（含测试文件组织 / 命名规范 / 反模式）见 `.claude/rules/testing.md`
+**目的**：在投入时间之前，确认要解决的问题是真实存在的。
 
-### ⑥ 代码审查
+- YC 六问：用户现在怎么解决的？痛点有多深？最小切口是什么？
+- 产出：决策记录（做/不做/最小实验）
+- **跳过条件**：纯技术任务（Bug修复、重构、依赖升级）
 
-```
-/review
-```
+### 层2: 需求规格 — /opsx:propose
 
-- **动作**: 运行 `/review`，检查 5 维度——SQL 安全性、LLM 信任边界、条件副作用、错误处理、安全
-- **问题分级**: CRITICAL（必须修）> HIGH（应该修）> MEDIUM（可修）> LOW（风格偏好）
-- ✅ **完成标志**: 无 CRITICAL/HIGH 问题
-- **不可跳过**（纯文档/配置变更除外）
+**目的**：把模糊想法变成人话文档，vibe coder 能看懂、能审。
 
-### ⑦ 安全审查
+- 产出：`openspec/changes/<name>/` 目录下的 proposal.md + design.md + tasks.md
+- 写的是**做什么、为什么做**，不是技术实现细节
+- **跳过条件**：单文件小修小改（<50行）
 
-```
-/cso
-```
+### 层3: 方案设计 — superpowers brainstorming
 
-- **动作**: 运行 `/cso`，5 阶段审计——密钥考古 → 依赖供应链 → CI/CD 管道 → OWASP Top 10 → STRIDE 威胁建模
-- **两种模式**: 日常（零噪音，高置信度门槛）和全面（月度深度扫描）
-- ✅ **完成标志**: 无 CRITICAL 安全问题
-- **触发条件**: 仅 auth / finance / system 模块
-- **跳过条件**: 非安全敏感模块
+**目的**：2-3 种方案对比，选最优路径。
 
-### ⑧ 文档反写（**每个 commit 后立即执行，不可跳过**）
+- 一次只问一个问题，不轰炸
+- 产出设计文档到 `docs/superpowers/specs/`
+- **HARD GATE**: 设计批准前不写任何代码
 
-> 这是最容易遗漏的环节。**代码改了但文档没同步 = 技术债。**
+### 层4: 计划拆分 — superpowers writing-plans
 
-post-commit hook 会在每次 commit 后自动提醒检查以下对应关系：
+**目的**：把设计拆成 bite-size 任务。
 
-| 改了什么 | 必须同步到 |
-|----------|-----------|
-| DB schema（新表/改字段） | `docs/database-schema.md` |
-| API 端点（新增/修改） | `docs/api-design.md` |
-| 权限（新角色/新资源） | `docs/security.md` |
-| 新功能/新模块（不在 PRD 中） | `docs/PRD.md` |
-| 新增/修改模块 | `docs/modules/{module}.md` |
-| 模块间依赖变化 | `docs/architecture.md` |
-| 业务模块状态变化 | `CLAUDE.md` 业务模块表 |
-| 模块进度变化 | `PROGRESS.md` |
-| 完成了 todolist 中的子任务 | `todolist.md` 删除/勾选 |
-| 模块完成/里程碑 | `memory/MEMORY.md` |
+- 每个任务 2-5 分钟可完成
+- 每个任务有明确的文件路径和验证命令
+- 完成后自动触发 todolist-management skill 生成 `todolist.md`
 
-✅ **完成标志**: `git diff` 中包含对应的文档文件变更
+### 层5: 进度追踪 — todolist-management skill
 
-### ⑨ 提交归档
+**目的**：保证会话中断后能无缝恢复，代码不会跑偏。
 
-```
-/ship → PR 合并后 → /opsx:archive
-```
+- writing-plans 完成后自动生成 `todolist.md`（P0/P1 checkbox 格式）
+- 每个任务完成后自动标记 `[x]`
+- 新会话启动时自动读取未完成任务
+- P0 不超过 7 个
 
-- **/ship 命令自动执行**: merge base → `/verify` → `/review` → bump version → update changelog → commit → push → create PR
-- **如果 verify 失败或 review 发现 CRITICAL 问题，/ship 自动中止**
-- PR 合并后运行 `/opsx:archive` 将变更移至 `openspec/changes/archive/YYYY-MM-DD-<name>/`
-- 小改动（<50行）可直接 `git commit`（遵循 `git-workflow.md` 格式和粒度规范）
-- ✅ **完成标志**: PR 已创建（或 commit 成功）+ 变更已归档
-- **不可跳过**
+### 层6: 编码测试 — superpowers TDD + subagent-driven-development
 
----
+**目的**：RED → GREEN → REFACTOR，有测试的代码。
+
+- 铁律：没有失败测试前不写实现代码
+- subagent-drive-development 派独立子代理执行每个任务
+- 每个子代理完成后自动触发代码审查
+
+### 层7: 浏览器验证 — gstack /browse + /qa
+
+**目的**：看到真实页面，不是凭空说"应该没问题"。
+
+- `/browse` 打开真实 Chromium，截图验证
+- `/qa` 端到端测试，发现 bug 自动修
+- 非前端项目可跳过
+
+### 层8: 审查安全 — gstack /review + /cso
+
+**目的**：独立审查，发现作者视角看不见的问题。
+
+- `/review`: SQL 安全性、信任边界、副作用、错误处理
+- `/cso`: 密钥考古、供应链、OWASP Top 10
+- `/cso` 仅在 auth/finance/system 模块触发
+
+### 层9: 发布归档 — gstack /ship → /opsx:archive
+
+**目的**：标准化发布 + 结构化归档。
+
+- `/ship`: 自动 merge base → test → review → bump → changelog → push → PR
+- `/opsx:archive`: 变更移至 `archive/YYYY-MM-DD-<name>/`
+
+## 会话恢复流程
+
+当用户说"继续"、"接着做"、"继续上次的"：
+
+1. 读 `todolist.md` — 找到第一个未勾选的 P0 任务
+2. 读 `git log -1` — 确认上次提交状态
+3. 运行 `gstack /context-restore` — 恢复上次上下文（如果有）
+4. 从第一个未完成 P0 开始继续
 
 ## 经验反写触发规则
 
@@ -172,4 +144,4 @@ post-commit hook 会在每次 commit 后自动提醒检查以下对应关系：
 | 遇到报错并解决 | `memory/troubleshooting.md` |
 | 发现项目特有模式 | `memory/dev-notes.md` |
 | 用户确认"功能正确了" | `.claude/skills/{project}-{topic}/SKILL.md` |
-| 技术决策变更 | `memory/MEMORY.md` 已决策事项 |
+| 技术决策变更 | `memory/MEMORY.md` |

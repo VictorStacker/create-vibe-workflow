@@ -186,36 +186,18 @@ const SKILL_CODEX_DESCRIPTIONS: Record<string, string> = {
   'grill-with-docs': 'Use when reviewing a plan or design document — adversarial review against documentation, assumption checking',
 };
 
-/** 命令名 → Codex skill 名映射 */
+/** 命令名 → Codex skill 名映射（仅本工具独有的命令） */
 const COMMAND_TO_CODEX_SKILL: Record<string, string> = {
   'propose': 'opsx-propose',
-  'apply': 'opsx-apply',
   'archive': 'opsx-archive',
   'explore': 'opsx-explore',
-  'brainstorm': 'brainstorm',
-  'plan': 'plan',
-  'tdd': 'tdd',
-  'verify': 'verify',
-  'review': 'review',
-  'cso': 'cso',
-  'ship': 'ship',
-  'office-hours': 'office-hours',
 };
 
 /** 命令 → Codex 触发描述 */
 const COMMAND_CODEX_DESCRIPTIONS: Record<string, string> = {
-  'propose': 'Use when starting a new feature or change — creates proposal.md, design.md, and tasks.md from natural language description',
-  'apply': 'Use when ready to implement tasks from a proposal — implements tasks one by one from tasks.md checklist',
+  'propose': 'Use when starting a new feature or change — creates proposal.md, design.md, and tasks.md in human-readable format for review',
   'archive': 'Use when all tasks in a change are complete — moves the change to archive with date prefix',
   'explore': 'Use when thinking through a problem, investigating code, or comparing options — read-only exploration mode, no code changes',
-  'brainstorm': 'Use when turning a vague idea into a concrete design — explores approaches, presents trade-offs, writes design doc',
-  'plan': 'Use when breaking a design into commit-sized subtasks — creates todolist.md with P0/P1 priority',
-  'tdd': 'Use when implementing any feature or bugfix — enforces RED-GREEN-REFACTOR cycle, never write implementation before test',
-  'verify': 'Use before claiming work is done — runs build, type check, lint, tests, security scan, diff review',
-  'review': 'Use before merging a PR — analyzes diff for SQL safety, LLM trust boundaries, conditional side effects, error handling',
-  'cso': 'Use when the change touches auth, finance, or system modules — security audit with secrets archaeology and OWASP Top 10',
-  'ship': 'Use when code is ready to deploy — runs tests, bumps version, updates changelog, creates PR',
-  'office-hours': 'Use when evaluating whether a new feature idea is worth building — demand validation, smallest wedge, desperation specificity',
 };
 
 /**

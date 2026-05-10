@@ -390,11 +390,10 @@ describe('generateCodexSkillFrontmatter', () => {
 });
 
 describe('getCodexSkillName', () => {
-  it('should map command names to Codex skill names', () => {
+  it('should map opsx command names to Codex skill names', () => {
     expect(getCodexSkillName('propose')).toBe('opsx-propose');
-    expect(getCodexSkillName('review')).toBe('review');
-    expect(getCodexSkillName('ship')).toBe('ship');
-    expect(getCodexSkillName('office-hours')).toBe('office-hours');
+    expect(getCodexSkillName('archive')).toBe('opsx-archive');
+    expect(getCodexSkillName('explore')).toBe('opsx-explore');
   });
 
   it('should return same name for unmapped command', () => {
@@ -403,10 +402,15 @@ describe('getCodexSkillName', () => {
 });
 
 describe('getCodexSkillDescription', () => {
-  it('should return trigger description for command', () => {
-    const desc = getCodexSkillDescription('review', true);
-    expect(desc).toContain('SQL safety');
-    expect(desc).toContain('LLM trust boundaries');
+  it('should return trigger description for opsx command', () => {
+    const desc = getCodexSkillDescription('propose', true);
+    expect(desc).toContain('proposal.md');
+    expect(desc).toContain('human-readable');
+  });
+
+  it('should return fallback for unknown command', () => {
+    const desc = getCodexSkillDescription('unknown-cmd', true);
+    expect(desc).toContain('Use unknown-cmd command');
   });
 
   it('should return trigger description for skill', () => {

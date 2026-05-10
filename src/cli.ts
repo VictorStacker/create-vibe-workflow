@@ -207,7 +207,7 @@ async function main() {
       console.log(chalk.white('  📄 AGENTS.md           — 项目 AI 协作配置（含规则合并）'));
       console.log();
       console.log(chalk.yellow('下一步：重启 Codex 即可使用新的工作流'));
-      console.log(chalk.dim('使用 $skill-name 触发技能，例如 $tdd、$review、$ship\n'));
+      console.log(chalk.dim('使用 $skill-name 触发技能\n'));
     } else {
       await generate(config);
 
@@ -215,7 +215,7 @@ async function main() {
       console.log(chalk.dim('已生成以下内容：'));
       console.log(chalk.white('  📁 .claude/rules/      — 10 个开发工作流规则'));
       console.log(chalk.white('  📁 .claude/skills/     — 项目领域技能包'));
-      console.log(chalk.white('  📁 .claude/commands/   — 工作流命令（12 个）'));
+      console.log(chalk.white('  📁 .claude/commands/   — 衔接命令（propose/explore/archive）'));
       console.log(chalk.white('  📁 .claude/memory/     — 项目记忆系统'));
       console.log(chalk.white('  📁 .claude/hooks/      — 自动化检查脚本'));
       console.log(chalk.white('  📄 CLAUDE.md           — 项目 AI 协作配置'));

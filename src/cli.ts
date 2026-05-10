@@ -176,6 +176,7 @@ async function main() {
   const isUninstall = args.includes('--uninstall');
   const isOverwrite = args.includes('--overwrite');
   const isCheck = args.includes('--check');
+  const isCodex = args.includes('--codex');
 
   if (isCheck) {
     await healthCheck(process.cwd());
@@ -193,21 +194,37 @@ async function main() {
     config.overwrite = isOverwrite;
     config.targetDir = process.cwd();
 
-    await generate(config);
+    if (isCodex) {
+      config.tool = 'codex';
+      const { generateForCodex } = await import('./generator.js');
+      await generateForCodex(config);
 
-    console.log(chalk.green.bold('\n✅ 安装完成！\n'));
-    console.log(chalk.dim('已生成以下内容：'));
-    console.log(chalk.white('  📁 .claude/rules/      — 9 个开发工作流规则'));
-    console.log(chalk.white('  📁 .claude/skills/     — 项目领域技能包'));
-    console.log(chalk.white('  📁 .claude/commands/   — 工作流命令（propose/apply/archive/explore）'));
-    console.log(chalk.white('  📁 .claude/memory/     — 项目记忆系统'));
-    console.log(chalk.white('  📁 .claude/hooks/      — 自动化检查脚本'));
-    console.log(chalk.white('  📄 CLAUDE.md           — 项目 AI 协作配置'));
-    console.log(chalk.white('  ⚙️  .claude/settings.json — 工作流配置'));
-    console.log();
-    console.log(chalk.yellow('下一步：重启 Claude Code 即可使用新的工作流'));
-    console.log(chalk.dim('如果尚未安装依赖组件（gstack / superpowers），'));
-    console.log(chalk.dim('Claude Code 启动时会提示安装指引。\n'));
+      console.log(chalk.green.bold('\n✅ 安装完成（Codex）！\n'));
+      console.log(chalk.dim('已生成以下内容：'));
+      console.log(chalk.white('  📁 .agents/skills/     — 技能包（含 YAML frontmatter）'));
+      console.log(chalk.white('  📁 .codex/             — config.toml + hooks.json'));
+      console.log(chalk.white('  📁 .claude/memory/     — 项目记忆系统（与 Claude Code 共享）'));
+      console.log(chalk.white('  📄 AGENTS.md           — 项目 AI 协作配置（含规则合并）'));
+      console.log();
+      console.log(chalk.yellow('下一步：重启 Codex 即可使用新的工作流'));
+      console.log(chalk.dim('使用 $skill-name 触发技能，例如 $tdd、$review、$ship\n'));
+    } else {
+      await generate(config);
+
+      console.log(chalk.green.bold('\n✅ 安装完成！\n'));
+      console.log(chalk.dim('已生成以下内容：'));
+      console.log(chalk.white('  📁 .claude/rules/      — 10 个开发工作流规则'));
+      console.log(chalk.white('  📁 .claude/skills/     — 项目领域技能包'));
+      console.log(chalk.white('  📁 .claude/commands/   — 工作流命令（12 个）'));
+      console.log(chalk.white('  📁 .claude/memory/     — 项目记忆系统'));
+      console.log(chalk.white('  📁 .claude/hooks/      — 自动化检查脚本'));
+      console.log(chalk.white('  📄 CLAUDE.md           — 项目 AI 协作配置'));
+      console.log(chalk.white('  ⚙️  .claude/settings.json — 工作流配置'));
+      console.log();
+      console.log(chalk.yellow('下一步：重启 Claude Code 即可使用新的工作流'));
+      console.log(chalk.dim('如果尚未安装依赖组件（gstack / superpowers），'));
+      console.log(chalk.dim('Claude Code 启动时会提示安装指引。\n'));
+    }
   } catch (err) {
     if (err instanceof Error && err.message === 'USER_CANCELLED') {
       console.log(chalk.dim('\n已取消'));

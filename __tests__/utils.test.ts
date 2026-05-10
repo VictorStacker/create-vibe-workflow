@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest';
 import {
   isObject, deepMerge, appendCLAUDEmd, mergeSettingsJson,
   resolveSelectedSkills, getSkillTemplateDir, getRecommendedDomains,
+  generateCodexSkillFrontmatter, getCodexSkillName, getCodexSkillDescription,
+  wrapCodexSkillContent,
 } from '../src/utils.js';
 import type { SkillManifest, SkillSelectionInput } from '../src/utils.js';
 
@@ -365,5 +367,65 @@ describe('getRecommendedDomains', () => {
   it('other project type should only have workflow + testing', () => {
     const result = getRecommendedDomains('other', false, 'vibe-coder');
     expect(result).toEqual(['workflow', 'testing']);
+  });
+});
+
+// ────────────────────────────────────────────────
+// Codex YAML frontmatter
+// ────────────────────────────────────────────────
+describe('generateCodexSkillFrontmatter', () => {
+  it('should generate valid YAML frontmatter for tdd-workflow', () => {
+    const result = generateCodexSkillFrontmatter('tdd-workflow');
+    expect(result).toContain('---');
+    expect(result).toContain('name: tdd-workflow');
+    expect(result).toContain('description:');
+    expect(result).toContain('RED-GREEN-REFACTOR');
+  });
+
+  it('should generate fallback for unknown skill', () => {
+    const result = generateCodexSkillFrontmatter('unknown-skill');
+    expect(result).toContain('name: unknown-skill');
+    expect(result).toContain('description: Use when working with unknown-skill');
+  });
+});
+
+describe('getCodexSkillName', () => {
+  it('should map command names to Codex skill names', () => {
+    expect(getCodexSkillName('propose')).toBe('opsx-propose');
+    expect(getCodexSkillName('review')).toBe('review');
+    expect(getCodexSkillName('ship')).toBe('ship');
+    expect(getCodexSkillName('office-hours')).toBe('office-hours');
+  });
+
+  it('should return same name for unmapped command', () => {
+    expect(getCodexSkillName('unknown-cmd')).toBe('unknown-cmd');
+  });
+});
+
+describe('getCodexSkillDescription', () => {
+  it('should return trigger description for command', () => {
+    const desc = getCodexSkillDescription('review', true);
+    expect(desc).toContain('SQL safety');
+    expect(desc).toContain('LLM trust boundaries');
+  });
+
+  it('should return trigger description for skill', () => {
+    const desc = getCodexSkillDescription('tdd-workflow', false);
+    expect(desc).toContain('RED-GREEN-REFACTOR');
+  });
+});
+
+describe('wrapCodexSkillContent', () => {
+  it('should prepend YAML frontmatter with correct name', () => {
+    const result = wrapCodexSkillContent('tdd-workflow', '# TDD Content', false);
+    expect(result.startsWith('---\n')).toBe(true);
+    expect(result).toContain('name: tdd-workflow');
+    expect(result).toContain('# TDD Content');
+  });
+
+  it('should use Codex mapping for command names', () => {
+    const result = wrapCodexSkillContent('propose', '# Propose Content', true);
+    expect(result).toContain('name: opsx-propose');
+    expect(result).toContain('# Propose Content');
   });
 });

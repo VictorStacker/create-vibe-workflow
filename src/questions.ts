@@ -16,6 +16,7 @@ export interface UserConfig {
   projectType: ProjectType;
   needsDb: boolean;
   selectedDomains: string[];
+  tool: 'claude' | 'codex';
 }
 
 /** 支持的适配器映射（techStack → 模板子目录） */
@@ -162,5 +163,6 @@ export async function askQuestions(): Promise<UserConfig> {
     language: 'zh-CN',
     overwrite: false,
     targetDir: '',
+    tool: 'claude', // CLI 传入 --codex 时会被覆盖
   } as UserConfig;
 }

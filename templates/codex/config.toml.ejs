@@ -1,0 +1,24 @@
+# Codex 项目配置
+# 由 create-vibe-workflow@0.2.0 生成于 <%= GENERATED_AT %>
+
+# === 模型 ===
+# [model]
+# provider = "openai"  # openai / anthropic / google
+
+# === 审批策略 ===
+[approval_policy]
+default = "untrusted"
+auto_approve_bash = false
+
+# === 沙箱 ===
+[sandbox]
+enabled = false
+
+# === 特性 ===
+[features]
+codex_hooks = true
+
+# === MCP 服务器（按需取消注释） ===
+# [mcp_servers.github]
+# command = "npx"
+# args = ["-y", "@modelcontextprotocol/server-github"]

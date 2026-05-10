@@ -1,0 +1,45 @@
+<!-- WORKFLOW-START -->
+<!-- 此区域由 create-vibe-workflow 自动生成，重跑 CLI 时会更新 -->
+
+## AI 协作工具链
+
+本项目使用多层 AI 工具协作体系：
+
+```
+你的业务需求
+  ↓
+① OpenSpec ─── 把想法变成结构化的需求规格和任务清单
+  ↓
+② gstack ───── 虚拟团队角色审查（CEO审查/设计审查/工程审查）
+  ↓
+③ Superpowers ─ 强制执行正确的开发流程（TDD/系统调试/验证）
+```
+
+### Codex 命令速查
+
+本工具的命令以 Skill 形式安装（用 `$` 前缀触发）：
+
+| 步骤 | Skill | 用途 |
+|------|-------|------|
+| ①-a | `$office-hours` | 需求验证：值不值得做、最小切口 |
+| ①-b | `$opsx-propose` | 需求规格化：proposal + design + tasks |
+| ①-c | `$brainstorm` | 方案探索：多方案对比、设计文档 |
+| ② | `$plan` | 计划拆分：P0/P1 子任务 |
+| ⑤-a | `$tdd` | TDD 执行：RED→GREEN→REFACTOR |
+| ⑤-b | `$verify` | 完成前验证：编译/测试/lint/安全/diff |
+| ⑥ | `$review` | 代码审查：SQL/信任边界/副作用/错误处理 |
+| ⑦ | `$cso` | 安全审查：密钥/供应链/CI/CD/OWASP/STRIDE |
+| ⑨-a | `$ship` | 发布：merge→test→review→version→PR |
+| ⑨-b | `$opsx-archive` | 归档：变更移至 archive/ |
+
+### 技术栈
+
+- 语言: <%= LANGUAGE %>
+- 项目类型: <%= PROJECT_TYPE %>
+- 数据库: <%= NEEDS_DB === 'true' ? '是' : '否' %>
+
+### 已安装的技能包
+
+<%= SELECTED_SKILLS.join(', ') %>
+
+<!-- WORKFLOW-END -->

@@ -1,6 +1,6 @@
 {
   "name": "create-vibe-workflow",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "description": "一键安装 Claude Code 完整工作流 — 16 skills + 12 commands + 记忆系统 + 10 规则，面向非专业编程人员",
   "type": "module",
   "keywords": [

@@ -18,14 +18,23 @@ gstack（手脚 — 怎么干）
   rules + domain skills + memory + hooks
 ```
 
+## 开工前铁律（每次对话必须执行）
+
+**AI 在说任何话、做任何事之前，必须先读 `todolist.md`。**
+
+1. 读到 → 检查"当前阶段" → 从该阶段开始，不得跳步
+2. 没读到（文件不存在）→ 询问用户："要开始新功能吗？还是继续之前的工作？"
+3. 想跳到下一层 → 先确认上层已完成（[x]）→ 更新阶段追踪 → 再前进
+4. **上层未完成时跳过它直接写代码 = 违规**
+
 ## 核心原则
 
-1. **流程归 superpowers** — 所有 brainstorming、plan、TDD、verify、debug 走 superpowers
-2. **执行归 gstack** — 所有浏览器、QA、review、cso、ship、护栏 走 gstack
-3. **独立 reviewer 通道** — 作者和审查者绝不在同一上下文互评
-4. **证据优先** — 声明完成前必须有可验证的证据（verification-before-completion）
-5. **遇到歧义先 brainstorm** — 花 5 分钟理清需求，省后面 5 小时返工
-6. **会话恢复先读 todolist** — 新会话第一件事是检查 `todolist.md`
+1. **流程归 superpowers** — brainstorming、plan、TDD、verify、debug
+2. **执行归 gstack** — browser、QA、review、cso、ship、护栏
+3. **独立 reviewer** — 作者和审查者不在同一上下文互评
+4. **证据优先** — 声明完成前必须有可验证证据
+5. **歧义先 brainstorm** — 5 分钟理清需求，省 5 小时返工
+6. **阶段不跳步** — 9 层按序推进，todolist 阶段追踪强制约束
 
 ## 路由裁决表
 

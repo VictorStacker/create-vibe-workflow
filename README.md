@@ -38,11 +38,11 @@ npx create-vibe-workflow       # 终端运行
 
 | 工具 | 定位 | 我们取什么 | 我们不要什么 |
 |------|------|-----------|-------------|
-| **superpowers** | 大脑（怎么想） | 14 个 skill — 全部保留 | 不重复造替代品 |
-| **gstack** | 手脚（怎么干） | 45 个命令 — 全部保留 | 不写山寨版 |
-| **OpenSpec** | 规格化语言 | 变更追踪格式 + archive 命令 | 不装 CLI，不套外壳 |
-| **ECC** | 基础设施 | rules + hooks 精华 | 不装 ECC，好东西已提取 |
-| **Matt Pocock** | 追问+诊断 | grill-me / to-prd / caveman / diagnose | 不装完整仓库，只提取 6 个精华 skill |
+| [**superpowers**](https://github.com/obra/superpowers) | 大脑（怎么想） | 14 个 skill — 全部保留 | 不重复造替代品 |
+| [**gstack**](https://github.com/garrytan/gstack) | 手脚（怎么干） | 45 个命令 — 全部保留 | 不写山寨版 |
+| [**OpenSpec**](https://github.com/Fission-AI/OpenSpec) | 规格化语言 | 变更追踪格式 + archive 命令 | 不装 CLI，不套外壳 |
+| [**ECC**](https://github.com/affaan-m/everything-claude-code) | 基础设施 | rules + hooks 精华 | 不装 ECC，好东西已提取 |
+| [**Matt Pocock**](https://github.com/amazingloft999-droid/mattpocock-skills) | 追问+诊断 | grill-me / to-prd / caveman / diagnose | 不装完整仓库，只提取 6 个精华 skill |
 
 核心原则：**插件不在多，在配合。更少的组件，更清晰的边界。**
 
@@ -225,6 +225,18 @@ npm test           # vitest
 npm run build      # tsc + copy-assets
 npm run dev        # tsx 直接运行
 ```
+
+## 致谢
+
+本工具基于以下开源项目的精华整合而成，感谢原作者：
+
+| 项目 | 作者 | 我们整合了什么 |
+|------|------|-------------|
+| [superpowers](https://github.com/obra/superpowers) | Jesse Vincent (@obra) | brainstorming / writing-plans / TDD / verification / debugging 等 14 个 skill |
+| [gstack](https://github.com/garrytan/gstack) | Garry Tan (@garrytan) | /office-hours / /browse / /qa / /review / /cso / /ship 等 45 个命令 |
+| [OpenSpec](https://github.com/Fission-AI/OpenSpec) | Fission AI | 变更追踪格式 + archive 命令设计理念 |
+| [everything-claude-code](https://github.com/affaan-m/everything-claude-code) | Affaan Mustafa (@affaan-m) | rules / hooks 基础模板 |
+| [mattpocock-skills](https://github.com/amazingloft999-droid/mattpocock-skills) | Matt Pocock (@mattpocock) | grill-me / to-prd / caveman / diagnose 等 skill |
 
 ## License
 

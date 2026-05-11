@@ -5,6 +5,8 @@
 
 ## 五工具分工
 
+> 基于以下开源项目：superpowers (Jesse Vincent) · gstack (Garry Tan) · OpenSpec (Fission AI) · ECC (Affaan Mustafa) · mattpocock-skills (Matt Pocock)
+
 ```
 superpowers（大脑）    gstack（手脚）     本工具（衔接）       Matt Pocock（补充）
 ─────────────────    ───────────────    ─────────────       ─────────────────

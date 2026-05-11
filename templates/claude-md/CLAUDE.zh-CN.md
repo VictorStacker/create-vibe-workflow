@@ -41,6 +41,8 @@ gstack（手脚 — 怎么干）
 | 任务 | 工具 |
 |------|------|
 | 验证需求 / 探讨想法 | `gstack /office-hours` |
+| 追问需求细节 | `grill-me` skill（自动） |
+| 对话整理成 PRD | `to-prd` skill |
 | 把需求写成规格 | `/opsx:propose` |
 | 方案设计 / 头脑风暴 | `superpowers brainstorming` |
 | 写实施计划 | `superpowers writing-plans` |

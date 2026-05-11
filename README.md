@@ -48,9 +48,9 @@ npx create-vibe-workflow       # 终端运行
 ### 九层架构
 
 ```
-层1: 需求验证  → gstack /office-hours          "值不值得做？"
-层2: 需求规格  → /opsx:propose                 "做什么？"（人话，能审）
-层3: 方案设计  → superpowers brainstorming     "怎么实现？"
+层1: 需求验证  → /office-hours                  "值不值得做？"
+层2: 想法追问  → grill-me                       "具体怎么做？问清楚"
+层3: 需求规格  → /opsx:propose                  "写成规格"
 层4: 计划拆分  → superpowers writing-plans     "拆成几步？"
 层5: 进度追踪  → todolist-management（自动）   "做到哪了？断了能接上"
 层6: 编码测试  → superpowers TDD + subagent    "实际干活"
@@ -147,8 +147,10 @@ AI 遇到以下任务时，严格走指定工具：
 
 | 任务 | 工具 |
 |------|------|
-| 验证需求 / 探讨想法 | `gstack /office-hours` |
-| 把需求写成规格 | `/opsx:propose` |
+| 验证需求 | `gstack /office-hours` |
+| 追问细节 | `grill-me` skill |
+| 对话→PRD | `to-prd` skill |
+| 写成规格 | `/opsx:propose` |
 | 方案设计 / 头脑风暴 | `superpowers brainstorming` |
 | 写实施计划 | `superpowers writing-plans` |
 | 进度追踪（自动） | `todolist-management` skill |

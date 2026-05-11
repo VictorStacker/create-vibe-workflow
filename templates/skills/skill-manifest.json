@@ -13,7 +13,9 @@
         "search-first",
         "strategic-compact",
         "todolist-management",
-        "architecture-gate"
+        "architecture-gate",
+        "grill-me",
+        "to-prd"
       ]
     },
     "frontend": {

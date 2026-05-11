@@ -1,6 +1,6 @@
 {
   "meta": {
-    "generatedBy": "create-vibe-workflow@0.2.0",
+    "generatedBy": "create-vibe-workflow@0.3.0",
     "generatedAt": "<%= GENERATED_AT %>"
   },
   "dependencies": {

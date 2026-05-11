@@ -361,7 +361,7 @@ export async function generate(config: UserConfig): Promise<FileResult[]> {
     path.join(claudeDir, '.generated-manifest.json'),
     JSON.stringify(
       {
-        generatedBy: 'create-vibe-workflow@0.3.0',
+        generatedBy: 'create-vibe-workflow@0.3.1',
         generatedAt: new Date().toISOString(),
         files: manifestFiles,
       },
@@ -615,7 +615,7 @@ export async function generateForCodex(config: UserConfig): Promise<FileResult[]
   fs.writeFileSync(
     path.join(codexDir, '.generated-manifest.json'),
     JSON.stringify({
-      generatedBy: 'create-vibe-workflow@0.3.0',
+      generatedBy: 'create-vibe-workflow@0.3.1',
       generatedAt: new Date().toISOString(),
       tool: 'codex',
       files: manifestFiles,

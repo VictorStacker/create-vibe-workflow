@@ -55,7 +55,7 @@ npx create-vibe-workflow       # 终端运行
 层5: 进度追踪  → todolist-management（自动）   "做到哪了？断了能接上"
 层6: 编码测试  → superpowers TDD + subagent    "实际干活"
 层7: 浏览器验证 → gstack /browse + /qa         "看到真的页面"
-层8: 审查安全  → gstack /review + /cso         "代码对不对？安全吗？"
+层8: 审查安全  → arch-gate → /review → /cso    "架构还对不对？代码呢？安全吗？"
 层9: 发布归档  → gstack /ship → /opsx:archive  "上线 + 记录"
 ```
 
@@ -79,9 +79,10 @@ npx create-vibe-workflow       # 终端运行
 │   │   ├── performance.md                  # 性能优化
 │   │   ├── hooks.md                        # Hook 配置
 │   │   └── memory.md                       # 记忆系统规则
-│   ├── skills/                             ← 17 个领域技能
+│   ├── skills/                             ← 18 个领域技能
 │   │   ├── tdd-workflow/                   # TDD 红绿重构
 │   │   ├── verification-loop/              # 6 阶段验证
+│   │   ├── architecture-gate/              # 架构一致性检查
 │   │   ├── todolist-management/            # 进度追踪 + 中断恢复
 │   │   ├── security-review/                # 安全检查
 │   │   ├── coding-standards/               # 编码标准
@@ -154,6 +155,7 @@ AI 遇到以下任务时，严格走指定工具：
 | 写代码（TDD） | `superpowers test-driven-development` |
 | 调试 bug | `superpowers systematic-debugging` |
 | 浏览器操作 / QA | `gstack /browse` / `/qa` |
+| 架构一致性（自动） | `architecture-gate` skill |
 | 代码审查 | `gstack /review` |
 | 安全审查 | `gstack /cso` |
 | 完成前自检 | `superpowers verification-before-completion` |

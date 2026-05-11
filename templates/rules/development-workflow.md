@@ -26,7 +26,7 @@ systematic-debugging  /context-save     rules + memory
 层5: 进度追踪  → todolist-management skill    "做到哪了？断了能接上"
 层6: 编码测试  → superpowers TDD + subagent   "实际干活"
 层7: 浏览器验证 → gstack /browse + /qa        "看到真的页面"
-层8: 审查安全  → gstack /review + /cso        "代码对不对？安全吗？"
+层8: 审查安全  → arch-gate → /review → /cso    "架构还对吗？代码呢？安全吗？"
 层9: 发布归档  → gstack /ship → /opsx:archive "上线 + 记录"
 ```
 
@@ -44,6 +44,7 @@ AI 遇到以下任务时，严格走指定工具，不得随机匹配：
 | 写代码 | `superpowers test-driven-development` | `subagent-driven-development` |
 | 调试 bug | `superpowers systematic-debugging` | `/browse`（看真实页面） |
 | 浏览器操作/QA | `gstack /browse` / `/qa` | — |
+| 架构一致性检查 | `architecture-gate` skill（自动） | — |
 | 代码审查 | `gstack /review` | — |
 | 安全审查 | `gstack /cso` | — |
 | 完成前自检 | `superpowers verification-before-completion` | — |
@@ -130,13 +131,15 @@ AI 遇到以下任务时，严格走指定工具，不得随机匹配：
 - `/qa` 端到端测试，发现 bug 自动修
 - 非前端项目可跳过
 
-### 层8: 审查安全 — gstack /review + /cso
+### 层8: 审查安全 — architecture-gate → /review → /cso
 
-**目的**：独立审查，发现作者视角看不见的问题。
+**目的**：三层审查，从架构到代码到安全，逐层收紧。
 
-- `/review`: SQL 安全性、信任边界、副作用、错误处理
-- `/cso`: 密钥考古、供应链、OWASP Top 10
-- `/cso` 仅在 auth/finance/system 模块触发
+- **8a architecture-gate**: 模块边界 / 依赖方向 / 模式一致性（三问检查）
+- **8b /review**: SQL 安全性、信任边界、副作用、错误处理
+- **8c /cso**: 密钥考古、供应链、OWASP Top 10（仅 auth/finance/system 模块）
+
+**architecture-gate 是 /review 的前置门槛**——先确认改动没有偏离架构基线，再审查代码细节。架构问题在细节审查中很容易被忽略。
 
 ### 层9: 发布归档 — gstack /ship → /opsx:archive
 

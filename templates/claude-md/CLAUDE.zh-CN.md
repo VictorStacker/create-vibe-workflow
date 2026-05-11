@@ -48,6 +48,7 @@ gstack（手脚 — 怎么干）
 | 写代码（TDD） | `superpowers test-driven-development` |
 | 调试 bug | `superpowers systematic-debugging` |
 | 浏览器操作 / QA | `gstack /browse` / `/qa` |
+| 架构一致性（自动） | `architecture-gate` skill |
 | 代码审查 | `gstack /review` |
 | 安全审查 | `gstack /cso` |
 | 完成前自检 | `superpowers verification-before-completion` |

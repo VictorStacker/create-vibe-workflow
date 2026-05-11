@@ -12,7 +12,8 @@
         "coding-standards",
         "search-first",
         "strategic-compact",
-        "todolist-management"
+        "todolist-management",
+        "architecture-gate"
       ]
     },
     "frontend": {

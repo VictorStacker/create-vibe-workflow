@@ -1,6 +1,6 @@
 # Create Vibe Workflow
 
-[English](#english) | **中文**
+[English](./README.en.md) | **中文**
 
 > 我在生产系统（21 个业务模块、数月稳定运行）中验证过的 Claude Code 工作流。
 > 一条命令安装。面向非专业编程人员——用自然语言写代码。
@@ -54,12 +54,12 @@ npx create-vibe-workflow       # 终端运行
 层1: 需求验证  → /office-hours                  "值不值得做？"
 层2: 想法追问  → grill-me                       "具体怎么做？问清楚"
 层3: 需求规格  → /opsx:propose                  "写成规格"
-层4: 计划拆分  → superpowers writing-plans     "拆成几步？"
-层5: 进度追踪  → todolist-management（自动）   "做到哪了？断了能接上"
-层6: 编码测试  → superpowers TDD + subagent    "实际干活"
-层7: 浏览器验证 → gstack /browse + /qa         "看到真的页面"
-层8: 审查安全  → arch-gate → /review → /cso    "架构还对不对？代码呢？安全吗？"
-层9: 发布归档  → gstack /ship → /opsx:archive  "上线 + 记录"
+层4: 方案设计  → superpowers brainstorming      "技术怎么实现？"
+层5: 计划拆分  → superpowers writing-plans      "拆成几步？"
+层6: 编码测试  → superpowers TDD + subagent     "实际干活"
+层7: 浏览器验证 → gstack /browse + /qa          "看到真的页面"
+层8: 审查安全  → arch-gate → /review → /cso     "架构还对不对？代码呢？安全吗？"
+层9: 发布归档  → gstack /ship → /opsx:archive   "上线 + 记录"
 ```
 
 每层一个负责方，不重叠，不冲突。superpowers 和 gstack 像接力赛一样交替工作。
@@ -82,11 +82,13 @@ npx create-vibe-workflow       # 终端运行
 │   │   ├── performance.md                  # 性能优化
 │   │   ├── hooks.md                        # Hook 配置
 │   │   └── memory.md                       # 记忆系统规则
-│   ├── skills/                             ← 18 个领域技能
+│   ├── skills/                             ← 20 个领域技能
 │   │   ├── tdd-workflow/                   # TDD 红绿重构
 │   │   ├── verification-loop/              # 6 阶段验证
 │   │   ├── architecture-gate/              # 架构一致性检查
 │   │   ├── todolist-management/            # 进度追踪 + 中断恢复
+│   │   ├── grill-me/                       # 想法追问
+│   │   ├── to-prd/                         # 对话→PRD
 │   │   ├── security-review/                # 安全检查
 │   │   ├── coding-standards/               # 编码标准
 │   │   ├── search-first/                   # 先搜索再编码
@@ -134,7 +136,7 @@ npx create-vibe-workflow       # 终端运行
 
 | 领域 | 推荐条件 | 技能数 |
 |------|---------|--------|
-| 工作流核心 | 始终 | 7 个 |
+| 工作流核心 | 始终 | 10 个 |
 | 前端开发 | 网页/全栈 | 1 个（框架无关） |
 | 后端开发 | API/全栈 | 1 个（框架无关） |
 | 数据库 | 有 DB | 2 个 |
@@ -239,73 +241,6 @@ npm run dev        # tsx 直接运行
 | [OpenSpec](https://github.com/Fission-AI/OpenSpec) | Fission AI | 变更追踪格式 + archive 命令设计理念 |
 | [everything-claude-code](https://github.com/affaan-m/everything-claude-code) | Affaan Mustafa (@affaan-m) | rules / hooks 基础模板 |
 | [mattpocock-skills](https://github.com/amazingloft999-droid/mattpocock-skills) | Matt Pocock (@mattpocock) | grill-me / to-prd / caveman / diagnose 等 skill |
-
-## License
-
-[MIT](./LICENSE)
-
----
-
-<a name="english"></a>
-
-# Create Vibe Workflow
-
-**[中文](#)** | English
-
-> Battle-tested Claude Code workflow from a 21-module production system. One command installs everything.
-
-## What This Does
-
-Claude Code is powerful, but free-form conversation goes off the rails. After auditing five open-source projects (superpowers, gstack, OpenSpec, ECC, Matt Pocock skills), I found they each handle one layer with zero overlap — but need glue to work together.
-
-This tool is that glue: **routing tables so they don't fight, rules so they have discipline, and unique capabilities to complete the flow.**
-
-## Quick Start
-
-```bash
-npx create-vibe-workflow       # Terminal
-# Restart Claude Code → auto-detect missing deps → paste install commands → done
-```
-
-| Flag | Description |
-|------|-------------|
-| (none) | Interactive install (merge mode) |
-| `--overwrite` | Force overwrite |
-| `--uninstall` | Clean up all generated files |
-| `--check` | Health check |
-| `--codex` | Generate Codex CLI config |
-
-## Five Tools, Nine Layers
-
-| Layer | What | Tool |
-|-------|------|------|
-| 1 | Validate demand | `/office-hours` (gstack) |
-| 2 | Refine idea | `grill-me` (Matt Pocock) |
-| 3 | Write spec | `/opsx:propose` |
-| 4 | Design solution | `brainstorming` (superpowers) |
-| 5 | Plan breakdown | `writing-plans` (superpowers) |
-| 6 | Code + test | `TDD + subagent-dev` (superpowers) |
-| 7 | Browser verify | `/browse + /qa` (gstack) |
-| 8 | Review + security | `arch-gate → /review → /cso` |
-| 9 | Ship + archive | `/ship` (gstack) → `/opsx:archive` |
-
-## What Gets Installed
-
-- **20 skills** (10 workflow core + 6 domain + 4 advanced)
-- **3 commands** (propose / explore / archive)
-- **10 rules** + memory system + hooks + routing table
-
-## Credits
-
-This tool integrates the best of five open-source projects:
-
-| Project | Author | What we integrated |
-|---------|--------|--------------------|
-| [superpowers](https://github.com/obra/superpowers) | Jesse Vincent | 14 workflow skills |
-| [gstack](https://github.com/garrytan/gstack) | Garry Tan | 45 execution commands |
-| [OpenSpec](https://github.com/Fission-AI/OpenSpec) | Fission AI | Change tracking format |
-| [ECC](https://github.com/affaan-m/everything-claude-code) | Affaan Mustafa | Rules + hooks templates |
-| [mattpocock-skills](https://github.com/amazingloft999-droid/mattpocock-skills) | Matt Pocock | grill-me / to-prd / caveman |
 
 ## License
 

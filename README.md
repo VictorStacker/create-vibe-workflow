@@ -32,6 +32,46 @@ npx create-vibe-workflow       # 终端运行
 | `--check` | 健康检查 |
 | `--codex` | 生成 Codex CLI 配置 |
 
+### 不用 npm：AI 自主安装
+
+给 agent 仓库地址，它自己读、自己装。零依赖，连 npm 都不用。
+
+**第一步**：复制下面的 prompt，粘贴到 Claude Code / Codex / Cursor 等任意 AI 编码工具里：
+
+````text
+请从 GitHub 仓库 VictorStacker/create-vibe-workflow 安装 Claude Code 工作流到本项目。
+
+安装步骤：
+1. 读取仓库 `templates/rules/` 下所有 .md 文件，写入本项目的 `.claude/rules/`
+2. 读取 `templates/hooks/` 下所有文件，写入 `.claude/hooks/`
+3. 读取 `templates/skills/` 下所有 skill 文件，写入 `.claude/skills/`（保持子目录结构）
+4. 读取 `templates/commands/` 下所有命令文件，写入 `.claude/commands/`
+5. 读取 `templates/memory/` 下所有文件，写入 `.claude/memory/`
+6. 读取 `templates/settings/settings.template.json`，替换变量后写入 `.claude/settings.json`
+   - GENERATED_AT: 当前时间 ISO 8601
+   - LANGUAGE: "zh-CN"
+   - PROJECT_TYPE: 根据项目实际类型填 "web" / "api" / "fullstack" / "other"
+   - SELECTED_DOMAINS: ["workflow"]
+   - SELECTED_SKILLS: 根据 skills/ 目录下实际安装的技能列表填写
+7. 读取 `templates/claude-md/CLAUDE.zh-CN.md`（或对应技术栈子目录），写入项目根目录 `CLAUDE.md`
+   - 如果项目已有 CLAUDE.md：只替换 `<!-- WORKFLOW-START -->` 到 `<!-- WORKFLOW-END -->` 区域
+   - 如果没有：直接写入完整内容
+
+变量替换规则：
+- PROJECT_NAME: 当前项目名称
+- TECH_STACK: 根据项目实际技术栈（nestjs-nextjs / next-only / node-api / other）
+- USER_LEVEL: "vibe-coder" 或 "developer"
+- MODULES: ["agents"]
+- LANGUAGE: "zh-CN"
+- GENERATED_AT: 当前时间
+
+安装完成后，总结生成了哪些文件。
+````
+
+**第二步**：agent 会自动完成安装。重启 Claude Code，看到启动提示就说明生效了。
+
+> 这种方式适合：不想装 npm 包、在 Cursor/Codex 等非 Claude Code 环境使用、或者想让 AI 按自己的需求调整安装内容。
+
 ---
 
 ## 设计思路：五个工具，九层架构

@@ -31,6 +31,46 @@ npx create-vibe-workflow       # Terminal
 | `--check` | Health check |
 | `--codex` | Generate Codex CLI config |
 
+### No npm? AI Self-Install
+
+Give your agent the repo URL. It reads and installs. Zero dependencies.
+
+**Step 1**: Copy this prompt into Claude Code, Codex, Cursor, or any AI coding tool:
+
+````text
+Install the Claude Code workflow from GitHub repo VictorStacker/create-vibe-workflow into this project.
+
+Steps:
+1. Read all .md files from the repo's `templates/rules/` directory, write them to `.claude/rules/`
+2. Read all files from `templates/hooks/`, write to `.claude/hooks/`
+3. Read all skill files from `templates/skills/`, write to `.claude/skills/` (preserve subdirectory structure)
+4. Read all command files from `templates/commands/`, write to `.claude/commands/`
+5. Read all files from `templates/memory/`, write to `.claude/memory/`
+6. Read `templates/settings/settings.template.json`, replace variables, write to `.claude/settings.json`
+   - GENERATED_AT: current time (ISO 8601)
+   - LANGUAGE: "zh-CN"
+   - PROJECT_TYPE: "web" / "api" / "fullstack" / "other" based on actual project
+   - SELECTED_DOMAINS: ["workflow"]
+   - SELECTED_SKILLS: list of skill names actually installed from skills/
+7. Read `templates/claude-md/CLAUDE.zh-CN.md` (or the tech-stack subdirectory), write to root `CLAUDE.md`
+   - If CLAUDE.md exists: only replace content between `<!-- WORKFLOW-START -->` and `<!-- WORKFLOW-END -->`
+   - If not: write the full content
+
+Variable substitution:
+- PROJECT_NAME: this project's name
+- TECH_STACK: nestjs-nextjs / next-only / node-api / other
+- USER_LEVEL: "vibe-coder" or "developer"
+- MODULES: ["agents"]
+- LANGUAGE: "zh-CN"
+- GENERATED_AT: current time
+
+Summarize what was generated when done.
+````
+
+**Step 2**: The agent handles the rest. Restart Claude Code — if you see the startup banner, it's working.
+
+> Use this when: you don't want npm, you're in Cursor/Codex, or you want the AI to customize the install.
+
 ---
 
 ## Five Tools, Nine Layers

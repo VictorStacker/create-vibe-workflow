@@ -1,6 +1,6 @@
 {
   "name": "create-vibe-workflow",
-  "version": "0.5.1",
+  "version": "0.6.0",
   "description": "一键安装 Claude Code 完整工作流 — 20 skills + 3 commands + 记忆系统 + 10 规则，面向非专业编程人员（Vibe Coder）。整合 superpowers、gstack、OpenSpec、ECC、Matt Pocock 五大工具，九层架构，开箱即用。",
   "type": "module",
   "keywords": [

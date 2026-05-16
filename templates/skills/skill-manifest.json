@@ -15,7 +15,9 @@
         "todolist-management",
         "architecture-gate",
         "grill-me",
-        "to-prd"
+        "to-prd",
+        "improve-codebase-architecture",
+        "grill-with-docs"
       ]
     },
     "frontend": {
@@ -51,12 +53,10 @@
     "advanced": {
       "userLevel": "developer",
       "label": "进阶技能",
-      "desc": "诊断/架构审计/精简沟通",
+      "desc": "诊断/精简沟通",
       "skills": [
         "caveman",
-        "diagnose",
-        "improve-codebase-architecture",
-        "grill-with-docs"
+        "diagnose"
       ]
     }
   }
